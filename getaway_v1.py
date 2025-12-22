@@ -1,14 +1,26 @@
 from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import HTTPException
 from httpx import AsyncClient
+
+from router_v1 import Router
 
 app = FastAPI(title="Easy Getaway")
 
-TEST_TARGET = "https://httpbin.org/"
+router = Router()
+router.add_route("/test", "https://httpbin.org")
+
+
 
 
 @app.api_route("/{catch_path:path}", methods=["GET", "POST"])
 async def catch_all(request: Request, catch_path: str):
-    url = f"{TEST_TARGET}/{catch_path}"
+    target = router.find_target(f"/{catch_path}")
+    if target:
+        url = f"{target}/{catch_path.lstrip('/')}"
+        print(url)
+    else:
+        raise HTTPException(status_code=404)\
+        
     body = await request.body()
     r_headers = dict(request.headers)
 
