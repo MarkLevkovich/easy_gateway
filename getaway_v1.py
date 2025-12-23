@@ -7,20 +7,25 @@ from router_v1 import Router
 app = FastAPI(title="Easy Getaway")
 
 router = Router()
+
+# tests
 router.add_route("/test", "https://httpbin.org")
+router.add_route("/api", "http://localhost:8000")
+router.add_route("/api/users", "http://localhost:8001")
 
-
-
+router.add_route("/api/*", "https://httpbin.org")
 
 @app.api_route("/{catch_path:path}", methods=["GET", "POST"])
 async def catch_all(request: Request, catch_path: str):
-    target = router.find_target(f"/{catch_path}")
+    target, remaining = router.find_target(f"/{catch_path}")
     if target:
-        url = f"{target}/{catch_path.lstrip('/')}"
-        print(url)
+        if remaining.startswith("/"):
+            url = target + remaining
+        else:
+            url = f"{target}/{remaining}"
     else:
-        raise HTTPException(status_code=404)\
-        
+        raise HTTPException(status_code=404)
+
     body = await request.body()
     r_headers = dict(request.headers)
 
@@ -34,3 +39,6 @@ async def catch_all(request: Request, catch_path: str):
         status_code=response.status_code,
         headers=dict(response.headers),
     )
+    
+    
+
