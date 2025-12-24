@@ -87,3 +87,6 @@ class EasyGateway:
                 raise HTTPException(
                     status_code=504, detail="[!] Backend timeout error [!]"
                 )
+    def run(self, host="0.0.0.0", port=8000):
+        import uvicorn
+        uvicorn.run(self.app, host=host, port=port)
