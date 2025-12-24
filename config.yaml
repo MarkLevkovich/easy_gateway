@@ -1,0 +1,28 @@
+#example config file
+server:
+  host: "0.0.0.0"
+  port: 8000
+  debug: false
+
+
+routes:
+  - path: "/api/users/*"
+    target: "http://user-service:8000"
+    description: "Сервис пользователей"
+
+  - path: "/api/products/*"
+    target: "http://product-service:8080"
+    description: "Сервис продуктов"
+
+  - path: "/health"
+    target: "http://monitoring:3000/health"
+    description: "Health check"
+
+
+middlewares:
+  - name: "LoggingMiddleware"
+    enabled: true
+
+  - name: "RateLimitMiddleware"
+    enabled: true
+    requests_per_minute: 100

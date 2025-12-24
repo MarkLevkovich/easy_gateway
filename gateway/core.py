@@ -11,7 +11,7 @@ from gateway.handler import process_request_middleware, process_response_middlew
 from middleware.base import Middleware
 from middleware.logging_middleware import LoggingMiddleware
 from middleware.rate_limit_middleware import RateLimitMiddleware
-from router_v1 import Router
+from router.router import Router
 
 
 class EasyGateway:
@@ -87,6 +87,8 @@ class EasyGateway:
                 raise HTTPException(
                     status_code=504, detail="[!] Backend timeout error [!]"
                 )
+
     def run(self, host="0.0.0.0", port=8000):
         import uvicorn
+
         uvicorn.run(self.app, host=host, port=port)
