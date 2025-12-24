@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Any, Optional, Required, Tuple
 
 import httpx
 from fastapi import FastAPI, Request
@@ -23,19 +23,20 @@ middlewares.append(LoggingMiddleware())
 router.add_route("/headers", "https://httpbin.org/")
 
 
-# funcs for router
-async def process_middleware(
-    request: Request, httpx_response: Optional[HTTPXResponse] = None
+async def process_request_middleware(
+    request: Request,
 ) -> Tuple[Request, Optional[FastAPIResponse]]:
     for middleware in middlewares:
         result = await middleware.before_request(request)
         if isinstance(result, FastAPIResponse):
             return request, result
         request = result
+    return request, None
 
-    if httpx_response is None:
-        return request, None
 
+async def process_response_middleware(
+    request: Request, httpx_response: HTTPXResponse
+) -> FastAPIResponse:
     fastapi_response = FastAPIResponse(
         content=httpx_response.content,
         status_code=httpx_response.status_code,
@@ -45,13 +46,13 @@ async def process_middleware(
     for middleware in reversed(middlewares):
         fastapi_response = await middleware.after_response(request, fastapi_response)
 
-    return request, fastapi_response
+    return fastapi_response
 
 
 @app.api_route("/{catch_path:path}", methods=["GET", "POST"])
 async def catch_all(request: Request, catch_path: str):
     print(f"🎯 HANDLER CALLED: {request.method} {catch_path}")
-    request, middleware_response = await process_middleware(request)
+    request, middleware_response = await process_request_middleware(request)
     if middleware_response is not None:
         return middleware_response
 
@@ -82,9 +83,7 @@ async def catch_all(request: Request, catch_path: str):
                 method=request.method, url=url, headers=r_headers, content=body
             )
 
-        request, proccessed_response = await process_middleware(
-            request, httpx_response
-        )
+        proccessed_response = await process_response_middleware(request, httpx_response)
 
         return proccessed_response
 

@@ -31,7 +31,7 @@ class RateLimitMiddleware(Middleware):
 
         self._clean_old_requests(ip)
 
-        if (len(self.requests[ip]) / 1) >= self.requests_per_minute:  # replace 1 - 2
+        if len(self.requests[ip]) >= self.requests_per_minute:
             return JSONResponse(
                 content={"Error": "too many requests"},
                 status_code=429,
