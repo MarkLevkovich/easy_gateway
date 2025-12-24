@@ -1,4 +1,6 @@
-from fastapi import Request, Response
+from typing import Optional, Tuple
+from fastapi import Request, Response as FastAPIResponse
+from httpx import Response as HTTPXResponse
 
 
 class Middleware:
@@ -7,6 +9,6 @@ class Middleware:
         # some code...
         return req
         
-    async def after_response(self,req: Request, res: Response):
+    async def after_response(self,req: Request, res: FastAPIResponse):
         # some code...
         return res

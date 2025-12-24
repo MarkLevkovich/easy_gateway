@@ -1,7 +1,9 @@
-import httpx
-from fastapi import FastAPI, Request, Response
+from typing import Optional, Tuple
+from fastapi import FastAPI, Request, Response as FastAPIResponse
+from httpx import AsyncClient, Response as HTTPXResponse
 from fastapi.exceptions import HTTPException
-from httpx import AsyncClient
+import httpx
+
 from middleware.base import Middleware
 from middleware.logging_middleware import LoggingMiddleware
 from router_v1 import Router
@@ -14,31 +16,37 @@ middlewares.append(LoggingMiddleware())
 
 router.add_route("/headers", "https://httpbin.org/")
 
+
 # funcs for router
-async def proccess_middleware(
-    request: Request, response: Response | None = None
-):
+async def proccess_middleware(request: Request, httpx_response: Optional[HTTPXResponse] = None) -> Tuple[Request, Optional[FastAPIResponse]]:
     for middleware in middlewares:
         result = await middleware.before_request(request)
-        if isinstance(result, Response):
+        if isinstance(result, FastAPIResponse):
             return request, result
         request = result
+    
+    if httpx_response is None:
+        return request, None
 
-    if response:
-        for middleware in reversed(middlewares):
-            response = await middleware.after_response(request, response)
+    fastapi_response = FastAPIResponse(
+        content=httpx_response.content,
+        status_code=httpx_response.status_code,
+        headers=dict(httpx_response.headers)
+    )
 
-    return request, response
+    for middleware in reversed(middlewares):
+        fastapi_response = await middleware.after_response(request, fastapi_response)
+
+    return request, fastapi_response
 
 
 @app.api_route("/{catch_path:path}", methods=["GET", "POST"])
 async def catch_all(request: Request, catch_path: str):
     request, middleware_response = await proccess_middleware(request)
-    if middleware_response:
+    if middleware_response is not None:
         return middleware_response
 
     target, remaining, route_type = router.find_target(f"/{catch_path}")
-    
 
     if not target:
         raise HTTPException(404)
@@ -61,19 +69,16 @@ async def catch_all(request: Request, catch_path: str):
 
     try:
         async with AsyncClient(timeout=30.0) as client:
-            response = await client.request(
+            httpx_response: HTTPXResponse = await client.request(
                 method=request.method, url=url, headers=r_headers, content=body
             )
-            
-        _, response = await proccess_middleware(request, response)
 
-        return Response(
-            content=response.content,
-            status_code=response.status_code,
-            headers=dict(response.headers),
-        )
+        request, proccessed_response = await proccess_middleware(request, httpx_response)
+
+        return proccessed_response
 
     except httpx.ConnectError:
         raise HTTPException(status_code=502, detail="[!] Backend connection error [!]")
+        
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="[!] Backend timeout error [!]")
