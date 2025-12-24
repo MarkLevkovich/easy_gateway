@@ -2,26 +2,36 @@ import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import HTTPException
 from httpx import AsyncClient
-
-from logger import logger
+from middleware.base import Middleware
+from middleware.logging_middleware import LoggingMiddleware
 from router_v1 import Router
 
 app = FastAPI(title="Easy Getaway")
-
 router = Router()
 
-# tests
-# Замени или добавь:
-router.add_route("/headers/*", "https://httpbin.org")
-router.add_route("/headers", "https://httpbin.org")
+middlewares: list[Middleware] = []
+middlewares.append(LoggingMiddleware())
+
+router.add_route("/headers", "https://httpbin.org/")
+
+# funcs for router
+async def proccess_middleware(request: Request, response: Response = None):
+    for middleware in middlewares:
+        request = await middleware.before_request(request)
+
+    if response:
+        for middleware in reversed(middlewares):
+            response = await middleware.after_response(request, response)
+
+    return request, response
 
 
 @app.api_route("/{catch_path:path}", methods=["GET", "POST"])
 async def catch_all(request: Request, catch_path: str):
-    logger.info(f"Запрос: {request.method} {request.url.path}")
+    request, _ = await proccess_middleware(request)
 
     target, remaining, route_type = router.find_target(f"/{catch_path}")
-    logger.info(f"Маршрут найден: {target} остаток: {remaining}")
+    
 
     if not target:
         raise HTTPException(404)
@@ -47,6 +57,8 @@ async def catch_all(request: Request, catch_path: str):
             response = await client.request(
                 method=request.method, url=url, headers=r_headers, content=body
             )
+            
+        _, response = await proccess_middleware(request, response)
 
         return Response(
             content=response.content,
