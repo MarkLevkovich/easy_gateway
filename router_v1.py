@@ -9,7 +9,11 @@ class Router:
 
             self.prefix_routes[prefix] = (target.rstrip("/"), "prefix")
         else:
-            full_url = target.strip("/") + path
+            if target.endswith("/"):
+                full_url = target + path.lstrip("/")
+            else:
+                full_url = target.rstrip("/") + "/" + path.lstrip("/")
+                
             self.exact_routes[path] = (full_url, "exact")
 
     def find_target(self, request_path):
