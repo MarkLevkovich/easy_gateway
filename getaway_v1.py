@@ -15,9 +15,14 @@ middlewares.append(LoggingMiddleware())
 router.add_route("/headers", "https://httpbin.org/")
 
 # funcs for router
-async def proccess_middleware(request: Request, response: Response = None):
+async def proccess_middleware(
+    request: Request, response: Response | None = None
+):
     for middleware in middlewares:
-        request = await middleware.before_request(request)
+        result = await middleware.before_request(request)
+        if isinstance(result, Response):
+            return request, result
+        request = result
 
     if response:
         for middleware in reversed(middlewares):
@@ -28,7 +33,9 @@ async def proccess_middleware(request: Request, response: Response = None):
 
 @app.api_route("/{catch_path:path}", methods=["GET", "POST"])
 async def catch_all(request: Request, catch_path: str):
-    request, _ = await proccess_middleware(request)
+    request, middleware_response = await proccess_middleware(request)
+    if middleware_response:
+        return middleware_response
 
     target, remaining, route_type = router.find_target(f"/{catch_path}")
     
