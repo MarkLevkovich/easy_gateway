@@ -1,37 +1,45 @@
 from typing import Optional, Tuple
-from fastapi import FastAPI, Request, Response as FastAPIResponse
-from httpx import AsyncClient, Response as HTTPXResponse
-from fastapi.exceptions import HTTPException
+
 import httpx
+from fastapi import FastAPI, Request
+from fastapi import Response as FastAPIResponse
+from fastapi.exceptions import HTTPException
+from httpx import AsyncClient
+from httpx import Response as HTTPXResponse
 
 from middleware.base import Middleware
 from middleware.logging_middleware import LoggingMiddleware
+from middleware.rate_limit_middleware import RateLimitMiddleware
 from router_v1 import Router
 
 app = FastAPI(title="Easy Getaway")
 router = Router()
 
 middlewares: list[Middleware] = []
+middlewares.append(RateLimitMiddleware(requests_per_minute=5))
 middlewares.append(LoggingMiddleware())
+
 
 router.add_route("/headers", "https://httpbin.org/")
 
 
 # funcs for router
-async def proccess_middleware(request: Request, httpx_response: Optional[HTTPXResponse] = None) -> Tuple[Request, Optional[FastAPIResponse]]:
+async def process_middleware(
+    request: Request, httpx_response: Optional[HTTPXResponse] = None
+) -> Tuple[Request, Optional[FastAPIResponse]]:
     for middleware in middlewares:
         result = await middleware.before_request(request)
         if isinstance(result, FastAPIResponse):
             return request, result
         request = result
-    
+
     if httpx_response is None:
         return request, None
 
     fastapi_response = FastAPIResponse(
         content=httpx_response.content,
         status_code=httpx_response.status_code,
-        headers=dict(httpx_response.headers)
+        headers=dict(httpx_response.headers),
     )
 
     for middleware in reversed(middlewares):
@@ -42,7 +50,8 @@ async def proccess_middleware(request: Request, httpx_response: Optional[HTTPXRe
 
 @app.api_route("/{catch_path:path}", methods=["GET", "POST"])
 async def catch_all(request: Request, catch_path: str):
-    request, middleware_response = await proccess_middleware(request)
+    print(f"🎯 HANDLER CALLED: {request.method} {catch_path}")
+    request, middleware_response = await process_middleware(request)
     if middleware_response is not None:
         return middleware_response
 
@@ -73,12 +82,14 @@ async def catch_all(request: Request, catch_path: str):
                 method=request.method, url=url, headers=r_headers, content=body
             )
 
-        request, proccessed_response = await proccess_middleware(request, httpx_response)
+        request, proccessed_response = await process_middleware(
+            request, httpx_response
+        )
 
         return proccessed_response
 
     except httpx.ConnectError:
         raise HTTPException(status_code=502, detail="[!] Backend connection error [!]")
-        
+
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="[!] Backend timeout error [!]")
