@@ -1,0 +1,2 @@
+[console_scripts]
+easy-gateway = easy_gateway.cli:main
