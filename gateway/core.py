@@ -59,8 +59,18 @@ class EasyGateway:
             return
 
         for route in routes_config:
-            self.router.add_route(route["path"], route["target"])
-            print(f"✅ Route added: {route['path']} -> {route['target']}")
+            path = route["path"]
+            target = route["target"]
+            
+            if path.endswith("/*"):
+                if "://" not in target:
+                    print(f"⚠️ For prefix path: {path} target need to be full URL (with http://)")
+                else:
+                    if target.count("/") < 3:
+                        print(f"⚠️ For exact route {path} specify full URL with path")
+            
+            self.router.add_route(path, target)
+            print(f"✅ Route added: {path} -> {target}")
 
     def _setup_handler(self):
         @self.app.api_route("/{catch_path:path}", methods=["GET", "POST"])

@@ -4,12 +4,10 @@
 #   port: 8000
 #   debug: false
 
-
-routes:  
+routes:
   - path: "/bin/*"
     target: "https://httpbin.org"
     description: "Echo Server"
-
 
 middlewares:
   - name: "LoggingMiddleware"
