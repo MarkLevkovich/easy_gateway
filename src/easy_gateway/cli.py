@@ -5,7 +5,8 @@ from easy_gateway.gateway.core import EasyGateway
 
 def main():
     parser = argparse.ArgumentParser(
-        description="🚀 Easy Gateway - простой API шлюз", usage="easy-gateway [OPTIONS]"
+        description="🚀 Easy Gateway - simple API gateway",
+        usage="easy-gateway [OPTIONS]",
     )
 
     parser.add_argument(
@@ -19,7 +20,6 @@ def main():
     args = parser.parse_args()
 
     print("🚀 Start Easy Gateway...")
-    print(f"📁 Config: {args.config}")
     print("─" * 40)
 
     gateway = EasyGateway(config_path=args.config)

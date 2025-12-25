@@ -34,4 +34,4 @@ easy-gateway = "easy_gateway.cli:main"
 package-dir = {"" = "src"}
 
 [project.urls]
-Homepage = "https://github.com/MarkLevkovich/easy-gateway"
+Homepage = "https://github.com/MarkLevkovich/easy_gateway"

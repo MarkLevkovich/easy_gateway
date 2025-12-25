@@ -1,17 +1,21 @@
 # 🚀 Easy Gateway
 
-Простой и легкий API шлюз на FastAPI для микросервисной архитектуры.
+A simple to use and lightweight API Gateway for microservice architecture.
 
-## ✨ Особенности
+## ✨ Features
 
-- ✅ Простая настройка через YAML
-- ✅ CLI интерфейс
-- ✅ Система middleware
-- ✅ Маршрутизация с префиксами
+- ✅ Easy setup via YAML
+- ✅ CLI interface
+- ✅ Middleware system
+- ✅ Routing with prefixes
 - ✅ Rate limiting
-- ✅ Логирование
+- ✅ Logging
 
-## 📦 Установка
+## 📦 Install
+
+DOCS & HOW TO USE ON MY GITHUB:
+[Visit It](https://github.com/MarkLevkovich/easy_gateway)
+
 
 ```bash
 pip install easy-gateway
