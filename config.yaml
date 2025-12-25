@@ -1,22 +1,14 @@
 #example config file
-server:
-  host: "0.0.0.0"
-  port: 8000
-  debug: false
+# server:
+#   host: "0.0.0.0"
+#   port: 8000
+#   debug: false
 
 
-routes:
-  - path: "/api/users/*"
-    target: "http://user-service:8000"
-    description: "Сервис пользователей"
-
-  - path: "/api/products/*"
-    target: "http://product-service:8080"
-    description: "Сервис продуктов"
-
-  - path: "/health"
-    target: "http://monitoring:3000/health"
-    description: "Health check"
+routes:  
+  - path: "/bin/*"
+    target: "https://httpbin.org"
+    description: "Echo Server"
 
 
 middlewares:
@@ -25,4 +17,4 @@ middlewares:
 
   - name: "RateLimitMiddleware"
     enabled: true
-    requests_per_minute: 100
+    requests_per_minute: 5

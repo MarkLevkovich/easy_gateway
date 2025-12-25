@@ -7,6 +7,7 @@ from fastapi.exceptions import HTTPException
 from httpx import AsyncClient
 from httpx import Response as HTTPXResponse
 
+from config import read_config
 from gateway.handler import process_request_middleware, process_response_middleware
 from middleware.base import Middleware
 from middleware.logging_middleware import LoggingMiddleware
@@ -15,7 +16,13 @@ from router.router import Router
 
 
 class EasyGateway:
-    def __init__(self, config: Dict[str, Any] = None):
+    def __init__(self, config_path: str = "config.yaml", config: Dict[str, Any] = None):
+        # check config
+        if config is None:
+            config = read_config(config_path)
+
+        self.config = config or {}
+
         # init basics apps
         self.app = FastAPI(title="Easy Gateway")
         self.router = Router()
@@ -25,13 +32,35 @@ class EasyGateway:
         self._setup_handler()
 
     def _setup_middleware(self):
-        # later from yaml
-        self.middlewares.append(RateLimitMiddleware(requests_per_minute=5))
-        self.middlewares.append(LoggingMiddleware())
+        middlewares_config = self.config.get("middlewares", [])
+
+        for mw_config in middlewares_config:
+            if not mw_config.get("enebled", True):
+                continue
+
+            name = mw_config["name"]
+            if name == "LoggingMiddleware":
+                self.middlewares.append(LoggingMiddleware())
+
+            elif name == "RateLimitMiddleware":
+                rpm = mw_config.get("requests_per_minute", 60)
+                self.middlewares.append(RateLimitMiddleware(requests_per_minute=rpm))
+
+            else:
+                print(f"⚠️ Unknown middleware: {name}")
+
+
+
 
     def _setup_routes(self):
-        # later from yaml
-        self.router.add_route("/headers", "https://httpbin.org/")
+        routes_config = self.config.get("routes")
+        if not routes_config:
+            print("⚠️ No routes configured!")
+            return
+
+        for route in routes_config:
+            self.router.add_route(route["path"], route["target"])
+            print(f"✅ Route added: {route['path']} -> {route['target']}")
 
     def _setup_handler(self):
         @self.app.api_route("/{catch_path:path}", methods=["GET", "POST"])

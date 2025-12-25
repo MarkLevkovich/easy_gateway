@@ -4,12 +4,12 @@ from typing import Any, Dict
 import yaml
 
 
-def load_config(config_path: str):
-    pass
+def read_config(config_path: str) -> Dict[str, Any]:
+    if Path(config_path).exists():
+        with open(config_path, "r", encoding="utf-8") as file:
+            data = yaml.safe_load(file)
+            return data or {}
+    else:
+        print("Check file path!")
+        return {}
 
-
-path = "config.yaml"
-if Path(path).exists():
-    load_config(path)
-else:
-    print("No file!")
