@@ -18,5 +18,5 @@ A simple to use and lightweight API Gateway for microservice architecture.
 ```bash
 pip install easy-gateway
 ```
-DOCS & HOW TO USE ON MY GITHUB:
-[Visit It](https://github.com/MarkLevkovich/easy_gateway)
+DOCS:
+[Visit](https://marklevkovich.github.io/easy-gateway-docs/)
