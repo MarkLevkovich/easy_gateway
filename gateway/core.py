@@ -47,7 +47,7 @@ class EasyGateway:
                 self.middlewares.append(RateLimitMiddleware(requests_per_minute=rpm))
 
             else:
-                print(f"⚠️ Unknown middleware: {name}")
+                print(f"🚫 Unknown middleware: {name}")
 
 
 
@@ -55,7 +55,7 @@ class EasyGateway:
     def _setup_routes(self):
         routes_config = self.config.get("routes")
         if not routes_config:
-            print("⚠️ No routes configured!")
+            print("🚫 No routes configured!")
             return
 
         for route in routes_config:
@@ -64,10 +64,10 @@ class EasyGateway:
             
             if path.endswith("/*"):
                 if "://" not in target:
-                    print(f"⚠️ For prefix path: {path} target need to be full URL (with http://)")
+                    print(f"🚫 For prefix path: {path} target need to be full URL (with http://)")
                 else:
                     if target.count("/") < 3:
-                        print(f"⚠️ For exact route {path} specify full URL with path")
+                        print(f"🚫 For exact route {path} specify full URL with path")
             
             self.router.add_route(path, target)
             print(f"✅ Route added: {path} -> {target}")
