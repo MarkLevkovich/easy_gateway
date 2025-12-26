@@ -8,12 +8,14 @@ from httpx import AsyncClient
 from httpx import Response as HTTPXResponse
 
 from easy_gateway.config import read_config
-from easy_gateway.gateway.handler import process_request_middleware, process_response_middleware
+from easy_gateway.gateway.handler import (
+    process_request_middleware,
+    process_response_middleware,
+)
 from easy_gateway.middleware.base import Middleware
 from easy_gateway.middleware.logging_middleware import LoggingMiddleware
 from easy_gateway.middleware.rate_limit_middleware import RateLimitMiddleware
 from easy_gateway.router.router import Router
-
 
 
 class EasyGateway:
@@ -127,7 +129,15 @@ class EasyGateway:
                     status_code=504, detail="[!] Backend timeout error [!]"
                 )
 
-    def run(self, host="0.0.0.0", port=8000):
+    def run(self, config_path: str = "config.yaml", host="0.0.0.0", port=8000):
         import uvicorn
+        try:
+            server = self.config.get("server")
+            if server is not None:
+                host = server["host"]
+                port = server["port"]
+        except Exception as e:
+            print("Wrong server configuration, now gateway use standart port(8000) & host(0.0.0.0)")
+            # print(f"ERROR: {e}")
 
         uvicorn.run(self.app, host=host, port=port)

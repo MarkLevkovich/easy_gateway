@@ -10,6 +10,5 @@ def read_config(config_path: str) -> Dict[str, Any]:
             data = yaml.safe_load(file)
             return data or {}
     else:
-        print("Check file path!")
+        print("Check config-file path!")
         return {}
-

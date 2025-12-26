@@ -17,10 +17,12 @@ Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
+License-File: LICENSE
 Requires-Dist: fastapi>=0.104.0
 Requires-Dist: httpx>=0.25.0
 Requires-Dist: uvicorn[standard]>=0.24.0
 Requires-Dist: pyyaml>=6.0
+Dynamic: license-file
 
 # 🚀 Easy Gateway
 
@@ -42,5 +44,5 @@ A simple to use and lightweight API Gateway for microservice architecture.
 ```bash
 pip install easy-gateway
 ```
-DOCS & HOW TO USE ON MY GITHUB:
-[Visit It](https://github.com/MarkLevkovich/easy_gateway)
+DOCS:
+[Visit](https://marklevkovich.github.io/easy-gateway-docs/)

@@ -1,3 +1,4 @@
+LICENSE
 README.md
 pyproject.toml
 src/easy_gateway/cli.py
