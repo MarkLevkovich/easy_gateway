@@ -1,17 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0,<75", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "easy-gateway"
-version = "0.1.1"
+version = "0.1.2"
 description = "Simple to use and fast Gateway for python developers"
 readme = "README.md"
 authors = [
     {name = "Mark", email = "levmarkpost@gmail.com"}
 ]
+
 license = {text = "MIT"}
+
 keywords = ["api", "gateway", "fastapi", "proxy", "microservices"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -29,9 +34,6 @@ dependencies = [
 
 [project.scripts]
 easy-gateway = "easy_gateway.cli:main"
-
-[tool.setuptools]
-package-dir = {"" = "src"}
 
 [project.urls]
 Homepage = "https://github.com/MarkLevkovich/easy_gateway"

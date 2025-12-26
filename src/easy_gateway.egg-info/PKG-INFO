@@ -1,6 +1,6 @@
-Metadata-Version: 2.4
+Metadata-Version: 2.1
 Name: easy-gateway
-Version: 0.1.1
+Version: 0.1.2
 Summary: Simple to use and fast Gateway for python developers
 Author-email: Mark <levmarkpost@gmail.com>
 License: MIT
@@ -8,7 +8,6 @@ Project-URL: Homepage, https://github.com/MarkLevkovich/easy_gateway
 Keywords: api,gateway,fastapi,proxy,microservices
 Classifier: Development Status :: 3 - Alpha
 Classifier: Intended Audience :: Developers
-Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python :: 3
 Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3.9
@@ -22,7 +21,6 @@ Requires-Dist: fastapi>=0.104.0
 Requires-Dist: httpx>=0.25.0
 Requires-Dist: uvicorn[standard]>=0.24.0
 Requires-Dist: pyyaml>=6.0
-Dynamic: license-file
 
 # 🚀 Easy Gateway
 
