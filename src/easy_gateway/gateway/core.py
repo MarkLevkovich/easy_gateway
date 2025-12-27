@@ -43,7 +43,7 @@ class EasyGateway:
         else:
             allow_conf_origins = ["*"]
 
-        print(f"ALLOW ORIGINS: {allow_conf_origins}")
+        print(f"🔨 Allow origins: {allow_conf_origins}\n")
         self.app.add_middleware(CORSMiddleware, allow_origins=allow_conf_origins)
 
     def _setup_middleware(self):
@@ -69,7 +69,9 @@ class EasyGateway:
         if not routes_config:
             print("🚫 No routes configured!")
             return
-
+            
+        print("🔨 Routes:")
+        
         for route in routes_config:
             path = route["path"]
             target = route["target"]
@@ -84,7 +86,8 @@ class EasyGateway:
                         print(f"🚫 For exact route {path} specify full URL with path")
 
             self.router.add_route(path, target)
-            print(f"✅ Route added: {path} -> {target}")
+            print(f"- added: {path} -> {target}")
+        print("\n")
 
     def _setup_handler(self):
         @self.app.api_route("/{catch_path:path}", methods=["GET", "POST"])
@@ -154,5 +157,6 @@ class EasyGateway:
                 "Wrong server configuration, now gateway use standart port(8000) & host(0.0.0.0)"
             )
             # print(f"ERROR: {e}")
+        print(f"✅ PORT: {port}, HOST: {host}")
 
         uvicorn.run(self.app, host=host, port=port)

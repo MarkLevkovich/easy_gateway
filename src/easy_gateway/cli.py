@@ -20,7 +20,8 @@ def main():
     args = parser.parse_args()
 
     print("🚀 Start Easy Gateway...")
-    print("─" * 40)
+    print("─" * 60)
+    print("─" * 15 + "SETTINGS" + "─" * 15)
 
     gateway = EasyGateway(config_path=args.config)
 
