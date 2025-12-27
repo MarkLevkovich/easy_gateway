@@ -8,6 +8,10 @@ routes:
     target: "https://httpbin.org/"
     description: "Echo Server"
 
+  - path: "/joke/*"
+    target: "https://v2.jokeapi.dev/joke/Any"
+    description: "Random Joke"
+
 middlewares:
   - name: "LoggingMiddleware"
     enabled: true
@@ -15,3 +19,9 @@ middlewares:
   - name: "RateLimitMiddleware"
     enabled: true
     requests_per_minute: 5
+
+cors:
+  allow_origins:
+    - "myfront.com"
+    - "testreact.space"
+    

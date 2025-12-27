@@ -4,6 +4,7 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi import Response as FastAPIResponse
 from fastapi.exceptions import HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from httpx import AsyncClient
 from httpx import Response as HTTPXResponse
 
@@ -33,6 +34,17 @@ class EasyGateway:
         self._setup_middleware()
         self._setup_routes()
         self._setup_handler()
+        self._setup_cors()
+
+    def _setup_cors(self):
+        cors_config = self.config.get("cors", {})
+        if isinstance(cors_config, dict) and "allow_origins" in cors_config:
+            allow_conf_origins = cors_config["allow_origins"]
+        else:
+            allow_conf_origins = ["*"]
+
+        print(f"ALLOW ORIGINS: {allow_conf_origins}")
+        self.app.add_middleware(CORSMiddleware, allow_origins=allow_conf_origins)
 
     def _setup_middleware(self):
         middlewares_config = self.config.get("middlewares", [])
@@ -131,13 +143,16 @@ class EasyGateway:
 
     def run(self, config_path: str = "config.yaml", host="0.0.0.0", port=8000):
         import uvicorn
+
         try:
             server = self.config.get("server")
             if server is not None:
                 host = server["host"]
                 port = server["port"]
         except Exception as e:
-            print("Wrong server configuration, now gateway use standart port(8000) & host(0.0.0.0)")
+            print(
+                "Wrong server configuration, now gateway use standart port(8000) & host(0.0.0.0)"
+            )
             # print(f"ERROR: {e}")
 
         uvicorn.run(self.app, host=host, port=port)
