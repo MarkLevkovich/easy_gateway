@@ -3,3 +3,4 @@ uvicorn
 httpx
 PyYAML
 pyyaml
+art

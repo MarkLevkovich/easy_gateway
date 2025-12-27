@@ -44,6 +44,7 @@ class EasyGateway:
             allow_conf_origins = ["*"]
 
         print(f"🔨 Allow origins: {allow_conf_origins}\n")
+
         self.app.add_middleware(CORSMiddleware, allow_origins=allow_conf_origins)
 
     def _setup_middleware(self):
@@ -63,6 +64,7 @@ class EasyGateway:
 
             else:
                 print(f"🚫 Unknown middleware: {name}")
+                
 
     def _setup_routes(self):
         routes_config = self.config.get("routes")
@@ -71,6 +73,7 @@ class EasyGateway:
             return
             
         print("🔨 Routes:")
+        
         
         for route in routes_config:
             path = route["path"]
@@ -87,6 +90,7 @@ class EasyGateway:
 
             self.router.add_route(path, target)
             print(f"- added: {path} -> {target}")
+
         print("\n")
 
     def _setup_handler(self):

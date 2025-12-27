@@ -1,5 +1,7 @@
 import argparse
 
+from art import *
+
 from easy_gateway.gateway.core import EasyGateway
 
 
@@ -18,6 +20,8 @@ def main():
     )
 
     args = parser.parse_args()
+
+    tprint("Easy Gateway", font="dancingfont")
 
     print("🚀 Start Easy Gateway...")
     print("─" * 60)
