@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "easy-gateway"
-version = "0.1.2"
+version = "0.1.4"
 description = "Simple to use and fast Gateway for python developers"
 readme = "README.md"
 authors = [

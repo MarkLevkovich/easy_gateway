@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: easy-gateway
-Version: 0.1.2
+Version: 0.1.4
 Summary: Simple to use and fast Gateway for python developers
 Author-email: Mark <levmarkpost@gmail.com>
 License: MIT
@@ -23,6 +23,19 @@ Requires-Dist: uvicorn[standard]>=0.24.0
 Requires-Dist: pyyaml>=6.0
 
 # 🚀 Easy Gateway
+
+
+<table>
+	<tr align="center">
+		<td>PyPI Counter</td>
+		<td><a href="https://pepy.tech/projects/art"><img src="https://static.pepy.tech/badge/easy_gateway" alt="PyPI Downloads"></a></td>
+	</tr>
+	<tr align="center">
+		<td>Github Stars</td>
+		<td><a href="https://github.com/MarkLevkovich/easy_gateway"><img src="https://img.shields.io/github/stars/MarkLevkovich/easy_gateway.svg?style=social&label=Stars"></a></td>
+	</tr>
+</table>
+
 
 A simple to use and lightweight API Gateway for microservice architecture.
 

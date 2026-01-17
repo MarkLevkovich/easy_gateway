@@ -1,4 +1,6 @@
 from typing import Any, Dict, Optional, Required, Tuple
+import asyncio
+import sys
 
 import httpx
 from fastapi import FastAPI, Request
@@ -17,17 +19,22 @@ from easy_gateway.middleware.base import Middleware
 from easy_gateway.middleware.logging_middleware import LoggingMiddleware
 from easy_gateway.middleware.rate_limit_middleware import RateLimitMiddleware
 from easy_gateway.router.router import Router
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from fastapi_cache.backends.inmemory import InMemoryBackend
+from fastapi_cache.decorator import cache
+
+from redis import asyncio as aioredis
 
 
 class EasyGateway:
     def __init__(self, config_path: str = "config.yaml", config: Dict[str, Any] = None):
-        # check config
         if config is None:
             config = read_config(config_path)
 
         self.config = config or {}
 
-        # init basics apps
+
         self.app = FastAPI(title="Easy Gateway")
         self.router = Router()
         self.middlewares: list[Middleware] = []
@@ -35,6 +42,7 @@ class EasyGateway:
         self._setup_routes()
         self._setup_handler()
         self._setup_cors()
+        self._setup_redis()
 
     def _setup_cors(self):
         cors_config = self.config.get("cors", {})
@@ -51,7 +59,7 @@ class EasyGateway:
         middlewares_config = self.config.get("middlewares", [])
 
         for mw_config in middlewares_config:
-            if not mw_config.get("enebled", True):
+            if not mw_config.get("enabled", True):
                 continue
 
             name = mw_config["name"]
@@ -93,7 +101,33 @@ class EasyGateway:
 
         print("\n")
 
+
+    def _setup_redis(self):
+        redis_setting = self.config.get("redis", {})
+        if redis_setting.get("enabled", False):
+            redis_url = redis_setting.get("url", "redis://localhost:6379")
+            try:
+
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                redis = loop.run_until_complete(aioredis.from_url(redis_url))
+
+                loop.run_until_complete(redis.ping())
+                
+                FastAPICache.init(RedisBackend(redis), prefix="easy-gateway-cache")
+                print(f"✅ Redis cache enabled: {redis_url}")
+            except Exception as e:
+                print(f"❌ Redis connection error: {e}")
+                print("   Start Redis: docker run -d -p 6379:6379 redis")
+                print("   Or set redis.enabled: false in config")
+                sys.exit(1)
+        else:
+            FastAPICache.init(InMemoryBackend(), prefix="easy-gateway-cache")
+            print("✅ InMemory cache enabled")
+
+
     def _setup_handler(self):
+        @cache(expire=500)
         @self.app.api_route("/{catch_path:path}", methods=["GET", "POST"])
         async def catch_all(request: Request, catch_path: str):
             print(f"🎯 HANDLER CALLED: {request.method} {catch_path}")
@@ -132,11 +166,11 @@ class EasyGateway:
                         method=request.method, url=url, headers=r_headers, content=body
                     )
 
-                proccessed_response = await process_response_middleware(
+                processed_response = await process_response_middleware(
                     self.middlewares, request, httpx_response
                 )
 
-                return proccessed_response
+                return processed_response
 
             except httpx.ConnectError:
                 raise HTTPException(
@@ -147,6 +181,7 @@ class EasyGateway:
                 raise HTTPException(
                     status_code=504, detail="[!] Backend timeout error [!]"
                 )
+
 
     def run(self, config_path: str = "config.yaml", host="0.0.0.0", port=8000):
         import uvicorn

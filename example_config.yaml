@@ -3,6 +3,10 @@ server:
   host: "0.0.0.0"
   port: 7777
 
+redis:
+  enabled: true  # or false for InMemory Cache
+  url: "redis://localhost:6379" 
+
 routes:
   - path: "/bin/*"
     target: "https://httpbin.org/"
