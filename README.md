@@ -4,7 +4,7 @@
 <table>
 	<tr align="center">
 		<td>PyPI Counter</td>
-		<td><a href="https://pepy.tech/projects/art"><img src="https://static.pepy.tech/badge/easy_gateway" alt="PyPI Downloads"></a></td>
+		<td><a href="https://pepy.tech/projects/easy-gateway"><img src="https://static.pepy.tech/badge/easy-gateway" alt="PyPI Downloads"></a></td>
 	</tr>
 	<tr align="center">
 		<td>Github Stars</td>
