@@ -33,6 +33,9 @@ class EasyGateway:
             config = read_config(config_path)
 
         self.config = config or {}
+        self.cache_exp = self.config["redis"].get("expire_time")
+        if self.cache_exp is None:
+            self.cache_exp = 180
 
 
         self.app = FastAPI(title="Easy Gateway")
@@ -127,7 +130,7 @@ class EasyGateway:
 
 
     def _setup_handler(self):
-        @cache(expire=500)
+        @cache(expire=self.cache_exp)
         @self.app.api_route("/{catch_path:path}", methods=["GET", "POST"])
         async def catch_all(request: Request, catch_path: str):
             print(f"🎯 HANDLER CALLED: {request.method} {catch_path}")
