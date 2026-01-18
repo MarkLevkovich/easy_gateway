@@ -1,14 +1,20 @@
-from typing import Any, Dict, Optional, Required, Tuple
 import asyncio
 import sys
+from typing import Any, Dict, Optional, Required, Tuple
 
 import httpx
 from fastapi import FastAPI, Request
 from fastapi import Response as FastAPIResponse
 from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
+from fastapi_cache.backends.redis import RedisBackend
+from fastapi_cache.decorator import cache
 from httpx import AsyncClient
 from httpx import Response as HTTPXResponse
+from loguru import logger
+from redis import asyncio as aioredis
 
 from easy_gateway.config import read_config
 from easy_gateway.gateway.handler import (
@@ -19,12 +25,10 @@ from easy_gateway.middleware.base import Middleware
 from easy_gateway.middleware.logging_middleware import LoggingMiddleware
 from easy_gateway.middleware.rate_limit_middleware import RateLimitMiddleware
 from easy_gateway.router.router import Router
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
-from fastapi_cache.backends.inmemory import InMemoryBackend
-from fastapi_cache.decorator import cache
 
-from redis import asyncio as aioredis
+
+logger.remove()
+logger.add(sys.stderr, format="<cyan>{time:HH:mm:ss}</cyan> | <level>{message}</level>")
 
 
 class EasyGateway:
@@ -36,7 +40,6 @@ class EasyGateway:
         self.cache_exp = self.config["redis"].get("expire_time")
         if self.cache_exp is None:
             self.cache_exp = 180
-
 
         self.app = FastAPI(title="Easy Gateway")
         self.router = Router()
@@ -75,17 +78,17 @@ class EasyGateway:
 
             else:
                 print(f"🚫 Unknown middleware: {name}")
-                
+                # print(f"🚫 Unknown middleware: {name}")
 
     def _setup_routes(self):
         routes_config = self.config.get("routes")
         if not routes_config:
             print("🚫 No routes configured!")
             return
-            
+
+        # print("🔨 Routes:")
         print("🔨 Routes:")
-        
-        
+
         for route in routes_config:
             path = route["path"]
             target = route["target"]
@@ -104,19 +107,17 @@ class EasyGateway:
 
         print("\n")
 
-
     def _setup_redis(self):
         redis_setting = self.config.get("redis", {})
         if redis_setting.get("enabled", False):
             redis_url = redis_setting.get("url", "redis://localhost:6379")
             try:
-
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 redis = loop.run_until_complete(aioredis.from_url(redis_url))
 
                 loop.run_until_complete(redis.ping())
-                
+
                 FastAPICache.init(RedisBackend(redis), prefix="easy-gateway-cache")
                 print(f"✅ Redis cache enabled: {redis_url}")
             except Exception as e:
@@ -128,12 +129,11 @@ class EasyGateway:
             FastAPICache.init(InMemoryBackend(), prefix="easy-gateway-cache")
             print("✅ InMemory cache enabled")
 
-
     def _setup_handler(self):
         @cache(expire=self.cache_exp)
         @self.app.api_route("/{catch_path:path}", methods=["GET", "POST"])
         async def catch_all(request: Request, catch_path: str):
-            print(f"🎯 HANDLER CALLED: {request.method} {catch_path}")
+            logger.debug(f"🎯 HANDLER CALLED: {request.method} {catch_path}")
             request, middleware_response = await process_request_middleware(
                 self.middlewares, request
             )
@@ -185,7 +185,6 @@ class EasyGateway:
                     status_code=504, detail="[!] Backend timeout error [!]"
                 )
 
-
     def run(self, config_path: str = "config.yaml", host="0.0.0.0", port=8000):
         import uvicorn
 
@@ -201,4 +200,4 @@ class EasyGateway:
             # print(f"ERROR: {e}")
         print(f"✅ PORT: {port}, HOST: {host}")
 
-        uvicorn.run(self.app, host=host, port=port)
+        uvicorn.run(self.app, host=host, port=port, log_level="warning")
