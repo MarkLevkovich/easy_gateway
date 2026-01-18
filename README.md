@@ -23,6 +23,7 @@ A simple to use and lightweight API Gateway for microservice architecture.
 - ✅ Routing with prefixes
 - ✅ Rate limiting
 - ✅ Logging
+- ✅ Cache (Redis / InMemory)
 
 ## 📦 Install
 

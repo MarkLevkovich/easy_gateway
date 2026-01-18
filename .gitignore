@@ -1,2 +1,6 @@
 .venv
 /venv
+__pychache__
+.dist/
+dist/
+build/
