@@ -5,3 +5,5 @@ __pychache__
 dist/
 build/
 config.yaml
+easy_gateway.egg-info
+/easy_gateway.egg-info
