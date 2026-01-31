@@ -4,3 +4,4 @@ __pychache__
 .dist/
 dist/
 build/
+config.yaml
