@@ -109,17 +109,18 @@ class EasyGateway:
         print("\n")
 
     def _setup_redis(self):
+        self.redis = None
         redis_setting = self.config.get("redis", {})
         if redis_setting.get("enabled", False):
             redis_url = redis_setting.get("url", "redis://localhost:6379")
             try:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                redis = loop.run_until_complete(aioredis.from_url(redis_url))
+                self.redis = loop.run_until_complete(aioredis.from_url(redis_url))
 
-                loop.run_until_complete(redis.ping())
+                loop.run_until_complete(self.redis.ping())
 
-                FastAPICache.init(RedisBackend(redis), prefix="easy-gateway-cache")
+                FastAPICache.init(RedisBackend(self.redis), prefix="easy-gateway-cache")
                 print(f"✅ Redis cache enabled: {redis_url}")
             except Exception as e:
                 print(f"❌ Redis connection error: {e}")
