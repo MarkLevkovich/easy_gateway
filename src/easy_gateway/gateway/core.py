@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import sys
 from typing import Any, Dict, Optional, Required, Tuple
 
@@ -132,12 +133,26 @@ class EasyGateway:
             print("✅ InMemory cache enabled")
 
     def _setup_handler(self):
-        # health-check
+
         @self.app.get("/health")
-        async def health_check():
+        async def check_health():
+            # health-check
+            checks = {}
+
+            if self.redis is not None:
+                try:
+                    await self.redis.ping()
+                    checks["cache"] = "ok"
+                except:
+                    checks["cache"] = "unavailable"
+            else:
+                checks["cache"] = "ok"
+            
+            all_ok = all(v == "ok" for v in checks.items())
             return {
-                "status": "healthy",
-                "service": "easy gateway"
+                "status": "healthy" if all_ok else "degraded",
+                "time": datetime.now(),
+                "checks": checks
             }
 
 
