@@ -27,19 +27,20 @@ from easy_gateway.middleware.rate_limit_middleware import RateLimitMiddleware
 from easy_gateway.router.router import Router
 
 
+# setup logger
 logger.remove()
 logger.add(sys.stderr, format="<cyan>{time:HH:mm:ss}</cyan> | <level>{message}</level>")
 
 
+
+# main class
 class EasyGateway:
     def __init__(self, config_path: str = "config.yaml", config: Dict[str, Any] = None):
         if config is None:
             config = read_config(config_path)
 
-        self.config = config or {}
-        self.cache_exp = self.config["redis"].get("expire_time")
-        if self.cache_exp is None:
-            self.cache_exp = 180
+        self.config = config or {}        
+        self.cache_exp = self.config.get("redis", {}).get("expire_time", 180)
 
         self.app = FastAPI(title="Easy Gateway")
         self.router = Router()
@@ -78,7 +79,7 @@ class EasyGateway:
 
             else:
                 print(f"🚫 Unknown middleware: {name}")
-                # print(f"🚫 Unknown middleware: {name}")
+
 
     def _setup_routes(self):
         routes_config = self.config.get("routes")
@@ -86,7 +87,7 @@ class EasyGateway:
             print("🚫 No routes configured!")
             return
 
-        # print("🔨 Routes:")
+
         print("🔨 Routes:")
 
         for route in routes_config:
@@ -130,8 +131,17 @@ class EasyGateway:
             print("✅ InMemory cache enabled")
 
     def _setup_handler(self):
+        # health-check
+        @self.app.get("/health")
+        async def health_check():
+            return {
+                "status": "healthy",
+                "service": "easy gateway"
+            }
+
+
         @cache(expire=self.cache_exp)
-        @self.app.api_route("/{catch_path:path}", methods=["GET", "POST"])
+        @self.app.api_route("/{catch_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
         async def catch_all(request: Request, catch_path: str):
             logger.debug(f"🎯 HANDLER CALLED: {request.method} {catch_path}")
             request, middleware_response = await process_request_middleware(
@@ -197,7 +207,7 @@ class EasyGateway:
             print(
                 "Wrong server configuration, now gateway use standart port(8000) & host(0.0.0.0)"
             )
-            # print(f"ERROR: {e}")
+
         print(f"✅ PORT: {port}, HOST: {host}")
 
         uvicorn.run(self.app, host=host, port=port, log_level="warning")
