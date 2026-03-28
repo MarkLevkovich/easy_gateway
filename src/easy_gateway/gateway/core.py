@@ -1,5 +1,5 @@
 import asyncio
-import datetime
+from datetime import datetime
 import sys
 from typing import Any, Dict, Optional, Required, Tuple
 
@@ -59,7 +59,7 @@ class EasyGateway:
         else:
             allow_conf_origins = ["*"]
 
-        print(f"🔨 Allow origins: {allow_conf_origins}\n")
+        logger.info(f"🔨 Allow origins: {allow_conf_origins}\n")
 
         self.app.add_middleware(CORSMiddleware, allow_origins=allow_conf_origins)
 
@@ -79,17 +79,17 @@ class EasyGateway:
                 self.middlewares.append(RateLimitMiddleware(requests_per_minute=rpm))
 
             else:
-                print(f"🚫 Unknown middleware: {name}")
+                logger.warning(f"🚫 Unknown middleware: {name}")
 
 
     def _setup_routes(self):
         routes_config = self.config.get("routes")
         if not routes_config:
-            print("🚫 No routes configured!")
+            logger.warning("🚫 No routes configured!")
             return
 
 
-        print("🔨 Routes:")
+        logger.info("🔨 Routes:")
 
         for route in routes_config:
             path = route["path"]
@@ -97,15 +97,15 @@ class EasyGateway:
 
             if path.endswith("/*"):
                 if "://" not in target:
-                    print(
+                    logger.warning(
                         f"🚫 For prefix path: {path} target need to be full URL (with http://)"
                     )
                 else:
                     if target.count("/") < 3:
-                        print(f"🚫 For exact route {path} specify full URL with path")
+                        logger.warning(f"🚫 For exact route {path} specify full URL with path")
 
             self.router.add_route(path, target)
-            print(f"- added: {path} -> {target}")
+            logger.info(f"- added: {path} -> {target}")
 
         print("\n")
 
@@ -122,21 +122,21 @@ class EasyGateway:
                 loop.run_until_complete(self.redis.ping())
 
                 FastAPICache.init(RedisBackend(self.redis), prefix="easy-gateway-cache")
-                print(f"✅ Redis cache enabled: {redis_url}")
+                logger.info(f"✅ Redis cache enabled: {redis_url}")
             except Exception as e:
-                print(f"❌ Redis connection error: {e}")
-                print("   Start Redis: docker run -d -p 6379:6379 redis")
-                print("   Or set redis.enabled: false in config")
+                logger.error(f"❌ Redis connection error: {e}")
+                logger.info("   Start Redis: docker run -d -p 6379:6379 redis")
+                logger.info("   Or set redis.enabled: false in config")
                 sys.exit(1)
+
         else:
             FastAPICache.init(InMemoryBackend(), prefix="easy-gateway-cache")
-            print("✅ InMemory cache enabled")
+            logger.info("✅ InMemory cache enabled")
 
     def _setup_handler(self):
 
         @self.app.get("/health")
         async def check_health():
-            # health-check
             checks = {}
 
             if self.redis is not None:
@@ -148,7 +148,7 @@ class EasyGateway:
             else:
                 checks["cache"] = "ok"
             
-            all_ok = all(v == "ok" for v in checks.items())
+            all_ok = all(v == "ok" for v in checks.values())
             return {
                 "status": "healthy" if all_ok else "degraded",
                 "time": datetime.now(),
@@ -224,6 +224,6 @@ class EasyGateway:
                 "Wrong server configuration, now gateway use standart port(8000) & host(0.0.0.0)"
             )
 
-        print(f"✅ PORT: {port}, HOST: {host}")
+        logger.info(f"✅ PORT: {port}, HOST: {host}")
 
         uvicorn.run(self.app, host=host, port=port, log_level="warning")
