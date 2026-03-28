@@ -1,31 +1,31 @@
 # Easy-Gateway Documentation
 
-## Обзор
+## Overview
 
-**Easy-Gateway** — легковесный API Gateway для микросервисной архитектуры.
+**Easy-Gateway** — lightweight API Gateway for microservices architecture.
 
-### Возможности
+### Features
 
-- Простая настройка через YAML
-- CLI интерфейс
-- Система middleware
-- Маршрутизация с префиксами
-- Rate limiting (ограничение запросов)
-- Логирование
-- Кэширование
+- Simple YAML configuration
+- CLI interface
+- Middleware system
+- Prefix-based routing
+- Rate limiting
+- Logging
+- Caching
 
-### Требования
+### Requirements
 
 - Python ≥ 3.7
-- Без внешних зависимостей
+- No external dependencies
 
-### Версия
+### Version
 
-v0.1.4
+v0.1.7
 
 ---
 
-## Установка
+## Installation
 
 ```bash
 pip install easy-gateway
@@ -33,9 +33,9 @@ pip install easy-gateway
 
 ---
 
-## Настройка конфигурации (config.yaml)
+## Configuration (config.yaml)
 
-### 1. Настройки сервера
+### 1. Server Settings
 
 ```yaml
 server:
@@ -43,21 +43,21 @@ server:
     port: 8000
 ```
 
-### 2. Настройки кэширования
+### 2. Cache Settings
 
 ```yaml
 redis:
-    enabled: true  # или false для InMemory Cache
+    enabled: true  # or false for InMemory Cache
     url: "redis://localhost:6379"
-    expire_time: 500  # время жизни кэша в секундах (по умолчанию 180)
+    expire_time: 500  # cache TTL in seconds (default 180)
 ```
 
-Для запуска Redis можно использовать Docker:
+To run Redis, you can use Docker:
 ```bash
 docker run -d --name my-redis -p 6379:6379 redis
 ```
 
-### 3. Маршруты
+### 3. Routes
 
 ```yaml
 routes:
@@ -66,15 +66,15 @@ routes:
     description: "Echo Server"
 ```
 
-**Важно:**
-- `path: "/user/*"` — для URL с любым префиксом после user
-- `path: "/user/"` — для точного URL
+**Important:**
+- `path: "/user/*"` — for URLs with any prefix after user
+- `path: "/user/"` — for exact URL match
 
 ### 4. Middleware
 
-Доступные middleware:
-- `LoggingMiddleware` — логирование запросов
-- `RateLimitMiddleware` — ограничение частоты запросов
+Available middleware:
+- `LoggingMiddleware` — request logging
+- `RateLimitMiddleware` — request rate limiting
 
 ```yaml
 middlewares:
@@ -97,30 +97,30 @@ cors:
 
 ---
 
-## Запуск
+## Running
 
 ```bash
 easy-gateway -c PATH-TO-YOUR-CONFIG
-# или
+# or
 easy-gateway --config
-# или просто
-easy-gateway  (если конфиг в корневой директории)
+# or simply
+easy-gateway  (if config is in root directory)
 ```
 
 ---
 
-## Структура проекта
+## Project Structure
 
 ```
 easy-gateway-docs/
-├── index.html    # HTML страница документации
-├── script.js     # JavaScript для навигации и копирования кода
-├── styles.css    # Стили (тёмная тема)
-└── README.md     # Этот файл
+├── index.html    # HTML documentation page
+├── script.js     # JavaScript for navigation and code copying
+├── styles.css    # Styles (dark theme)
+└── README.md     # This file
 ```
 
 ---
 
-## Ссылки
+## Links
 
 - GitHub: https://github.com/MarkLevkovich/easy_gateway

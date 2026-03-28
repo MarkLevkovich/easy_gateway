@@ -1,6 +1,7 @@
 import asyncio
-import datetime
 import sys
+from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Any, Dict, Optional, Required, Tuple
 
 import httpx
@@ -27,11 +28,9 @@ from easy_gateway.middleware.logging_middleware import LoggingMiddleware
 from easy_gateway.middleware.rate_limit_middleware import RateLimitMiddleware
 from easy_gateway.router.router import Router
 
-
 # setup logger
 logger.remove()
 logger.add(sys.stderr, format="<cyan>{time:HH:mm:ss}</cyan> | <level>{message}</level>")
-
 
 
 # main class
@@ -40,17 +39,28 @@ class EasyGateway:
         if config is None:
             config = read_config(config_path)
 
-        self.config = config or {}        
+        self.config = config or {}
         self.cache_exp = self.config.get("redis", {}).get("expire_time", 180)
 
-        self.app = FastAPI(title="Easy Gateway")
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            await self._setup_cache()
+            self.client = AsyncClient(timeout=30.0)
+            yield
+            await self.client.aclose()
+            if self.redis:
+                await self.redis.close()
+                logger.info("Redis connection closed")
+
+        self.app = FastAPI(title="Easy Gateway", lifespan=lifespan)
         self.router = Router()
         self.middlewares: list[Middleware] = []
+        self.redis = None
+        self.client = None
         self._setup_middleware()
         self._setup_routes()
         self._setup_handler()
         self._setup_cors()
-        self._setup_redis()
 
     def _setup_cors(self):
         cors_config = self.config.get("cors", {})
@@ -59,7 +69,7 @@ class EasyGateway:
         else:
             allow_conf_origins = ["*"]
 
-        print(f"🔨 Allow origins: {allow_conf_origins}\n")
+        logger.info(f"🔨 Allow origins: {allow_conf_origins}\n")
 
         self.app.add_middleware(CORSMiddleware, allow_origins=allow_conf_origins)
 
@@ -79,17 +89,15 @@ class EasyGateway:
                 self.middlewares.append(RateLimitMiddleware(requests_per_minute=rpm))
 
             else:
-                print(f"🚫 Unknown middleware: {name}")
-
+                logger.warning(f"🚫 Unknown middleware: {name}")
 
     def _setup_routes(self):
         routes_config = self.config.get("routes")
         if not routes_config:
-            print("🚫 No routes configured!")
+            logger.warning("🚫 No routes configured!")
             return
 
-
-        print("🔨 Routes:")
+        logger.info("🔨 Routes:")
 
         for route in routes_config:
             path = route["path"]
@@ -97,48 +105,46 @@ class EasyGateway:
 
             if path.endswith("/*"):
                 if "://" not in target:
-                    print(
+                    logger.warning(
                         f"🚫 For prefix path: {path} target need to be full URL (with http://)"
                     )
                 else:
                     if target.count("/") < 3:
-                        print(f"🚫 For exact route {path} specify full URL with path")
+                        logger.warning(
+                            f"🚫 For exact route {path} specify full URL with path"
+                        )
 
             self.router.add_route(path, target)
-            print(f"- added: {path} -> {target}")
+            logger.info(f"- added: {path} -> {target}")
 
         print("\n")
 
-    def _setup_redis(self):
-        self.redis = None
-        redis_setting = self.config.get("redis", {})
-        if redis_setting.get("enabled", False):
-            redis_url = redis_setting.get("url", "redis://localhost:6379")
+    async def _setup_cache(self):
+        redis_enabled = self.config.get("redis", {}).get("enabled", False)
+        if redis_enabled:
+            redis_url = self.config.get("redis", {}).get(
+                "url", "redis://localhost:6379"
+            )
             try:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                self.redis = loop.run_until_complete(aioredis.from_url(redis_url))
-
-                loop.run_until_complete(self.redis.ping())
-
+                self.redis = await aioredis.from_url(redis_url)
+                await self.redis.ping()
                 FastAPICache.init(RedisBackend(self.redis), prefix="easy-gateway-cache")
-                print(f"✅ Redis cache enabled: {redis_url}")
+                logger.info(f"✅ Redis cache enabled: {redis_url}")
             except Exception as e:
-                print(f"❌ Redis connection error: {e}")
-                print("   Start Redis: docker run -d -p 6379:6379 redis")
-                print("   Or set redis.enabled: false in config")
-                sys.exit(1)
+                logger.error(
+                    f"❌ Redis connection error: {e}. Falling back to in-memory cache."
+                )
+                self.redis = None
+                FastAPICache.init(InMemoryBackend(), prefix="easy-gateway-cache")
         else:
             FastAPICache.init(InMemoryBackend(), prefix="easy-gateway-cache")
-            print("✅ InMemory cache enabled")
+            logger.info("✅ InMemory cache enabled")
 
     def _setup_handler(self):
 
         @self.app.get("/health")
         async def check_health():
-            # health-check
             checks = {}
-
             if self.redis is not None:
                 try:
                     await self.redis.ping()
@@ -147,17 +153,18 @@ class EasyGateway:
                     checks["cache"] = "unavailable"
             else:
                 checks["cache"] = "ok"
-            
-            all_ok = all(v == "ok" for v in checks.items())
+
+            all_ok = all(v == "ok" for v in checks.values())
             return {
                 "status": "healthy" if all_ok else "degraded",
-                "time": datetime.now(),
-                "checks": checks
+                "time": datetime.now().isoformat(),
+                "checks": checks,
             }
 
-
         @cache(expire=self.cache_exp)
-        @self.app.api_route("/{catch_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+        @self.app.api_route(
+            "/{catch_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+        )
         async def catch_all(request: Request, catch_path: str):
             logger.debug(f"🎯 HANDLER CALLED: {request.method} {catch_path}")
             request, middleware_response = await process_request_middleware(
@@ -173,7 +180,6 @@ class EasyGateway:
 
             if route_type == "exact":
                 url = target
-
             else:
                 if remaining:
                     url = target + (
@@ -190,22 +196,19 @@ class EasyGateway:
                 r_headers["Accept"] = "application/json"
 
             try:
-                async with AsyncClient(timeout=30.0) as client:
-                    httpx_response: HTTPXResponse = await client.request(
-                        method=request.method, url=url, headers=r_headers, content=body
-                    )
+                httpx_response: HTTPXResponse = await self.client.request(
+                    method=request.method, url=url, headers=r_headers, content=body
+                )
 
                 processed_response = await process_response_middleware(
                     self.middlewares, request, httpx_response
                 )
-
                 return processed_response
 
             except httpx.ConnectError:
                 raise HTTPException(
                     status_code=502, detail="[!] Backend connection error [!]"
                 )
-
             except httpx.TimeoutException:
                 raise HTTPException(
                     status_code=504, detail="[!] Backend timeout error [!]"
@@ -224,6 +227,6 @@ class EasyGateway:
                 "Wrong server configuration, now gateway use standart port(8000) & host(0.0.0.0)"
             )
 
-        print(f"✅ PORT: {port}, HOST: {host}")
+        logger.info(f"✅ PORT: {port}, HOST: {host}")
 
         uvicorn.run(self.app, host=host, port=port, log_level="warning")
