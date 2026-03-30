@@ -13,9 +13,20 @@ class Router:
                 full_url = target + path.lstrip("/")
             else:
                 full_url = target.rstrip("/") + "/" + path.lstrip("/")
-                
+
             self.exact_routes[path] = (full_url, "exact")
 
+    def delete_route(self, path: str) -> bool:
+        if path.endswith("/*"):
+            prefix = path[:-2]
+            if prefix in self.prefix_routes:
+                del self.prefix_routes[prefix]
+                return True
+        else:
+            if path in self.prefix_routes:
+                del self.prefix_routes[path]
+                return True
+        return False
     def find_target(self, request_path):
         if request_path in self.exact_routes:
             target, route_type = self.exact_routes[request_path]

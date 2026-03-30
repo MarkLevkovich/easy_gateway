@@ -23,9 +23,9 @@ def main():
 
     tprint("Easy Gateway", font="dancingfont")
 
-    print("🚀 Start Easy Gateway...")
-    print("─" * 60)
-    print("─" * 15 + "SETTINGS" + "─" * 15)
+    print("🚀 Starting Easy Gateway...")
+    print("─" * 120)
+    print("─" * 6 + "SETTINGS" + "─" * 6)
 
     gateway = EasyGateway(config_path=args.config)
 
