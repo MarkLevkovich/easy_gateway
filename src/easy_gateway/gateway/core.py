@@ -3,7 +3,7 @@ import sys
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Dict, Optional, Required, Tuple
-from easy_gateway.gateway.admin.router import router as admin_router
+
 import httpx
 from fastapi import FastAPI, Request
 from fastapi import Response as FastAPIResponse
@@ -19,6 +19,7 @@ from loguru import logger
 from redis import asyncio as aioredis
 
 from easy_gateway.config import read_config
+from easy_gateway.gateway.admin.router import router as admin_router
 from easy_gateway.gateway.handler import (
     process_request_middleware,
     process_response_middleware,
@@ -143,6 +144,11 @@ class EasyGateway:
 
     def _setup_handler(self):
         self.app.include_router(admin_router)
+
+        @self.app.get("/")
+        async def welcome():
+            return {"Status": "easy gatewy is running", "INFO": "admin & docs -> /docs"}
+
         @self.app.get("/health")
         async def check_health():
             checks = {}
@@ -164,7 +170,9 @@ class EasyGateway:
 
         @cache(expire=self.cache_exp)
         @self.app.api_route(
-            "/{catch_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"],  include_in_schema=False
+            "/{catch_path:path}",
+            methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+            include_in_schema=False,
         )
         async def catch_all(request: Request, catch_path: str):
             logger.debug(f"🎯 HANDLER CALLED: {request.method} {catch_path}")
