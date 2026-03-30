@@ -13,8 +13,12 @@ routes:
     target: "https://httpbin.org/"
     description: "Echo Server"
 
+  - path: "/trash"
+    target: "https://httpbin.org/"
+    description: "Random Joke"
+  
   - path: "/joke/*"
-    target: "https://v2.jokeapi.dev/joke/Any"
+    target: "https://httpbin.org/"
     description: "Random Joke"
 
 middlewares:

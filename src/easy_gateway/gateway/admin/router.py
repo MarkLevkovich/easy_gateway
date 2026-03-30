@@ -35,3 +35,20 @@ async def delete_route(req: Request, path: str):
 
     logger.error(f"{PREFIX} ❌ route {path} not found")
     return {"status": "success", "message": f"Route '{path}' not found"}
+
+
+@router.get("/all_routes")
+async def show_all_routes(req: Request):
+    gateway = req.app.state.gateway
+    exact = gateway.router.exact_routes
+    prefix = gateway.router.prefix_routes
+
+    def format_routes(routes):
+        if not routes:
+            return "It's empty :("
+        return {path: {"url": data[0]} for path, data in routes.items()}
+
+    return {
+        "Exact routes": format_routes(exact),
+        "Prefix routes": format_routes(prefix),
+    }
