@@ -28,11 +28,7 @@ from easy_gateway.middleware.base import Middleware
 from easy_gateway.middleware.logging_middleware import LoggingMiddleware
 from easy_gateway.middleware.rate_limit_middleware import RateLimitMiddleware
 from easy_gateway.router.router import Router
-
-# setup logger
-logger.remove()
-logger.add(sys.stderr, format="<cyan>{time:HH:mm:ss}</cyan> | <level>{message}</level>")
-
+from loguru import logger
 
 # main class
 class EasyGateway:
@@ -237,5 +233,8 @@ class EasyGateway:
             )
 
         logger.info(f"✅ PORT: {port}, HOST: {host}")
-
-        uvicorn.run(self.app, host=host, port=port, log_level="warning")
+        try:
+            uvicorn.run(self.app, host=host, port=port, log_level="warning")
+        except KeyboardInterrupt:
+            logger.info("👋 Shutting down...")
+            return 

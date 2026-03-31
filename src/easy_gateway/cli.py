@@ -1,14 +1,53 @@
 import argparse
+import sys
+from pathlib import Path
 
 from art import *
+from loguru import logger
 
 from easy_gateway.gateway.core import EasyGateway
+
+
+def setup_logger():
+    logger.remove()
+
+    log_format = "<cyan>{time:HH:mm:ss}</cyan> | <level>{level: <8}</level> | <level>{message}</level>"
+
+    logger.add(sys.stderr, format=log_format, level="INFO")
+
+
+def validate_config(config_path: Path) -> bool:
+    """Validate config file existence and readability"""
+    if not config_path.exists():
+        logger.error(f"Config file not found: {config_path}")
+        return False
+
+    if not config_path.is_file():
+        logger.error(f"Config path is not a file: {config_path}")
+        return False
+
+    try:
+        from easy_gateway.config import read_config
+
+        read_config(str(config_path))
+        return True
+    except Exception as e:
+        logger.error(f"Failed to parse config file: {e}")
+        return False
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="🚀 Easy Gateway - simple API gateway",
         usage="easy-gateway [OPTIONS]",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  easy-gateway                     # Use default config.yaml
+  easy-gateway -c custom.yaml      # Use custom config
+  easy-gateway -v                  # Enable debug logging
+  easy-gateway -c config.yaml -v   # Combined options
+        """,
     )
 
     parser.add_argument(
@@ -19,17 +58,51 @@ def main():
         default="config.yaml",
     )
 
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="Easy Gateway 1.0.0",
+    )
+
+    parser.add_argument(
+        "--no-banner",
+        action="store_true",
+        help="Disable ASCII art banner",
+    )
+
     args = parser.parse_args()
 
-    tprint("Easy Gateway", font="dancingfont")
+    # Setup logger first
+    setup_logger()
 
-    print("🚀 Starting Easy Gateway...")
-    print("─" * 120)
-    print("─" * 6 + "SETTINGS" + "─" * 6)
+    config_path = Path(args.config)
+    if not validate_config(config_path):
+        sys.exit(1)
 
-    gateway = EasyGateway(config_path=args.config)
+    if not args.no_banner:
+        try:
+            tprint("Easy Gateway", font="dancingfont")
+        except ImportError:
+            logger.info("Easy Gateway")
+        except Exception as e:
+            logger.debug(f"Failed to print banner: {e}")
 
-    gateway.run()
+    separator = "─" * (len(str(config_path.absolute())) + 20)
+    logger.info(separator)
+    logger.info("🚀 Starting Easy Gateway...")
+    logger.info(f"📁 Config file: {config_path.absolute()}")
+    logger.info(separator)
+
+    try:
+        gateway = EasyGateway(config_path=str(config_path))
+        gateway.run()
+
+    except KeyboardInterrupt:
+        logger.info("\n👋 Shutting down...")
+        sys.exit(0)
+    except Exception as e:
+        logger.exception(f"❌ Failed to start gateway: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
