@@ -15,12 +15,12 @@ logger.add(
 class LoggingMiddleware(Middleware):
     async def before_request(self, req: Request):
         req.state.start_time = time.time()
-        logger.debug(f"🫣Request! Path -> {req.url.path}, method -> {req.method}.")
+        logger.debug(f"🫣 Request! Path -> {req.url.path}, method -> {req.method}.")
         return req
 
     async def after_response(self, req: Request, res: Response):
         elapsed = time.time() - req.state.start_time
         logger.debug(
-            f"🥳All Done! Response status-code -> {res.status_code}, time -> {elapsed}."
+            f"🥳 All Done! Response status-code -> {res.status_code}, time -> {elapsed}."
         )
         return res
