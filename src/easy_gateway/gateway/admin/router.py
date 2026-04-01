@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, status
 from loguru import logger
 
 router = APIRouter(prefix="/admin", tags=["Gateway Admin Panel"])
@@ -7,18 +7,8 @@ PREFIX = "[ADMIN]"
 
 @router.post("/add_route")
 async def add_route(req: Request, path: str, target: str):
-    if path.endswith("/*"):
-        if "://" not in target:
-            detail = f"For prefix path {path}, target must be a full URL (with http://)"
-            logger.error(f"{PREFIX} ❌ Bad Request: {detail}")
-            raise HTTPException(status_code=400, detail=detail)
-
-        if target.count("/") < 3:
-            detail = f"For exact route {path}, specify full URL with path"
-            logger.error(f"{PREFIX} ❌ Bad Request: {detail}")
-            raise HTTPException(status_code=400, detail=detail)
-
     gateway = req.app.state.gateway
+    gateway.router.validate(path, target)
     gateway.router.add_route(path, target)
 
     logger.info(f"{PREFIX} ✅ Route added: {path} --> {target}")
@@ -34,7 +24,7 @@ async def delete_route(req: Request, path: str):
         return {"status": "success", "message": f"Route '{path}' deleted"}
 
     logger.error(f"{PREFIX} ❌ route {path} not found")
-    return {"status": "success", "message": f"Route '{path}' not found"}
+    return {"status": "error", "message": f"Route '{path}' not found"}
 
 
 @router.get("/all_routes")
@@ -52,3 +42,17 @@ async def show_all_routes(req: Request):
         "Exact routes": format_routes(exact),
         "Prefix routes": format_routes(prefix),
     }
+
+
+@router.put("/routes/{path:path}")
+async def update_route(req: Request, path: str, new_target: str):
+    gateway = req.app.state.gateway
+    try:
+        gateway.router.update_route(path, new_target)
+        logger.info(f"[ADMIN] ✅ Route updated: {path} -> {new_target}")
+        return {"status": "success", "path": path, "target": new_target}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[ADMIN] ❌ Failed to update route {path}: {e}")
+        raise HTTPException(500, f"Failed to update route: {str(e)}")

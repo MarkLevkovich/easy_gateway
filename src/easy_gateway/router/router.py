@@ -1,7 +1,17 @@
+from fastapi import HTTPException, status
+from loguru import logger
+
+
 class Router:
     def __init__(self) -> None:
         self.exact_routes = {}
         self.prefix_routes = {}
+
+    def validate(self, path: str, target: str):
+        if not (target.startswith("http://") or target.startswith("https://")):
+            detail = f"Target must be a full URL (with http:// or https://)"
+            logger.error(f"[ADMIN] ❌ Bad Request: {detail}")
+            raise HTTPException(status_code=400, detail=detail)
 
     def add_route(self, path: str, target: str):
         if path.endswith("/*"):
@@ -17,16 +27,15 @@ class Router:
             self.exact_routes[path] = (full_url, "exact")
 
     def delete_route(self, path: str) -> bool:
-        if path.endswith("/*"):
-            prefix = path[:-2]
-            if prefix in self.prefix_routes:
-                del self.prefix_routes[prefix]
-                return True
+        if path in self.prefix_routes:
+            del self.prefix_routes[path]
+            return True
+        if path in self.exact_routes:
+            del self.exact_routes[path]
+            return True
         else:
-            if path in self.prefix_routes:
-                del self.prefix_routes[path]
-                return True
-        return False
+            return False
+
     def find_target(self, request_path):
         if request_path in self.exact_routes:
             target, route_type = self.exact_routes[request_path]
@@ -46,3 +55,24 @@ class Router:
             return target, remaining, route_type
 
         return None, "", None
+
+    def update_route(self, path: str, new_target: str) -> bool:
+        self.validate(path, new_target)
+    
+        if path.endswith("/*"):
+            prefix = path[:-2]
+            if prefix in self.prefix_routes:
+                self.prefix_routes[prefix] = (new_target.rstrip("/"), "prefix")
+                return True
+            raise HTTPException(404, f"Prefix route '{path}' not found")
+    
+        if path in self.exact_routes:
+            base = new_target.rstrip("/")
+            self.exact_routes[path] = (base, "exact")
+            return True
+    
+        if path in self.prefix_routes:
+            self.prefix_routes[path] = (new_target.rstrip("/"), "prefix")
+            return True
+    
+        raise HTTPException(404, f"Route '{path}' not found")

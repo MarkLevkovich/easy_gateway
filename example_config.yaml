@@ -1,7 +1,7 @@
 #example config file
 server:
   host: "0.0.0.0"
-  port: 7777
+  port: 2410
 
 redis:
   enabled: true  # or false for InMemory Cache
