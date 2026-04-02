@@ -44,7 +44,7 @@ async def show_all_routes(req: Request):
     }
 
 
-@router.put("/routes/{path:path}")
+@router.put("/update/{path:path}")
 async def update_route(req: Request, path: str, new_target: str):
     gateway = req.app.state.gateway
     try:
@@ -56,3 +56,21 @@ async def update_route(req: Request, path: str, new_target: str):
     except Exception as e:
         logger.error(f"[ADMIN] ❌ Failed to update route {path}: {e}")
         raise HTTPException(500, f"Failed to update route: {str(e)}")
+
+@router.get("/check/{path:path}")
+async def find_path(req: Request, path: str):
+    gateway = req.app.state.gateway
+    result = gateway.router.find_target(path)
+    
+    if result[0] is None:
+        return f"🧐 Path {path} not found"
+    
+    target, remaining, route_type = result
+    return {
+        "target": target,
+        "remaining": remaining,
+        "route_type": route_type
+    }
+        
+    
+    

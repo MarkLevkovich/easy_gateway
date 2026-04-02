@@ -45,8 +45,7 @@ def main():
 Examples:
   easy-gateway                     # Use default config.yaml
   easy-gateway -c custom.yaml      # Use custom config
-  easy-gateway -v                  # Enable debug logging
-  easy-gateway -c config.yaml -v   # Combined options
+  easy-gateway -c --no-banner      # Without banner (logo)
         """,
     )
 

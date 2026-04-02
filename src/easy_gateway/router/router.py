@@ -36,43 +36,45 @@ class Router:
         else:
             return False
 
-    def find_target(self, request_path):
+    def find_target(self, request_path: str) -> tuple[str | None, str, str | None]:
         if request_path in self.exact_routes:
             target, route_type = self.exact_routes[request_path]
             return target, "", route_type
 
         longest_prefix = ""
-        target = None
-        route_type = "prefix"
+        best_target = None
+        best_route_type = None
 
-        for prefix, (prefix_target, _) in self.prefix_routes.items():
+        for prefix, (target, route_type) in self.prefix_routes.items():
             if request_path.startswith(prefix):
                 if len(prefix) > len(longest_prefix):
                     longest_prefix = prefix
-                    target = prefix_target
-        if target:
+                    best_target = target
+                    best_route_type = route_type
+
+        if best_target:
             remaining = request_path[len(longest_prefix) :]
-            return target, remaining, route_type
+            return best_target, remaining, best_route_type
 
         return None, "", None
 
     def update_route(self, path: str, new_target: str) -> bool:
         self.validate(path, new_target)
-    
+
         if path.endswith("/*"):
             prefix = path[:-2]
             if prefix in self.prefix_routes:
                 self.prefix_routes[prefix] = (new_target.rstrip("/"), "prefix")
                 return True
             raise HTTPException(404, f"Prefix route '{path}' not found")
-    
+
         if path in self.exact_routes:
             base = new_target.rstrip("/")
             self.exact_routes[path] = (base, "exact")
             return True
-    
+
         if path in self.prefix_routes:
             self.prefix_routes[path] = (new_target.rstrip("/"), "prefix")
             return True
-    
+
         raise HTTPException(404, f"Route '{path}' not found")
