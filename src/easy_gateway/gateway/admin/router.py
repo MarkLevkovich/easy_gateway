@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Request
 from loguru import logger
 
 router = APIRouter(prefix="/admin", tags=["Gateway Admin Panel"])
@@ -57,20 +57,14 @@ async def update_route(req: Request, path: str, new_target: str):
         logger.error(f"[ADMIN] ❌ Failed to update route {path}: {e}")
         raise HTTPException(500, f"Failed to update route: {str(e)}")
 
+
 @router.get("/check/{path:path}")
 async def find_path(req: Request, path: str):
     gateway = req.app.state.gateway
     result = gateway.router.find_target(path)
-    
+
     if result[0] is None:
         return f"🧐 Path {path} not found"
-    
+
     target, remaining, route_type = result
-    return {
-        "target": target,
-        "remaining": remaining,
-        "route_type": route_type
-    }
-        
-    
-    
+    return {"target": target, "remaining": remaining, "route_type": route_type}

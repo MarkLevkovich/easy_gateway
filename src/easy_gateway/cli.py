@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from art import *
+from art import tprint
 from loguru import logger
 
 from easy_gateway.gateway.core import EasyGateway
