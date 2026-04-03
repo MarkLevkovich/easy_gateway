@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Any, Dict
-
+from loguru import logger
 import yaml
 
 
@@ -10,5 +10,5 @@ def read_config(config_path: str) -> Dict[str, Any]:
             data = yaml.safe_load(file)
             return data or {}
     else:
-        print("Check config-file path!")
+        logger.error("❌ Check config-file path!")
         return {}
