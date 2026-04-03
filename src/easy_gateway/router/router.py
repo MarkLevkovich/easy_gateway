@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Dict, Optional, Tuple
 from urllib.parse import urljoin
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 from loguru import logger
 
 
@@ -18,7 +18,7 @@ class Router:
 
     def validate(self, path: str, target: str):
         if not (target.startswith("http://") or target.startswith("https://")):
-            detail = f"Target must be a full URL (with http:// or https://)"
+            detail = "Target must be a full URL (with http:// or https://)"
             logger.error(f"[ADMIN] ❌ Bad Request: {detail}")
             raise HTTPException(status_code=400, detail=detail)
 
@@ -28,7 +28,6 @@ class Router:
             prefix = path[:-2]
             self.prefix_routes[prefix] = (target.rstrip("/"), RouteType.PREFIX)
         else:
-            # Формируем полный URL для точного маршрута
             full_url = urljoin(target.rstrip("/") + "/", path.lstrip("/"))
             self.exact_routes[path] = (full_url, RouteType.EXACT)
 
@@ -77,7 +76,6 @@ class Router:
             raise HTTPException(404, f"Prefix route '{path}' not found")
 
         if path in self.exact_routes:
-            # Формируем полный URL так же, как при добавлении
             full_url = urljoin(new_target.rstrip("/") + "/", path.lstrip("/"))
             self.exact_routes[path] = (full_url, RouteType.EXACT)
             return True

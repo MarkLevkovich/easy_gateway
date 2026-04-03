@@ -1,12 +1,9 @@
-import asyncio
-import sys
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Any, Dict, Optional, Required, Tuple
+from typing import Any, Dict
 
 import httpx
 from fastapi import FastAPI, Request
-from fastapi import Response as FastAPIResponse
 from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
@@ -28,7 +25,7 @@ from easy_gateway.middleware.base import Middleware
 from easy_gateway.middleware.logging_middleware import LoggingMiddleware
 from easy_gateway.middleware.rate_limit_middleware import RateLimitMiddleware
 from easy_gateway.router.router import Router
-from loguru import logger
+
 
 # main class
 class EasyGateway:
@@ -227,7 +224,7 @@ class EasyGateway:
             if server is not None:
                 host = server["host"]
                 port = server["port"]
-        except Exception as e:
+        except Exception:
             print(
                 "Wrong server configuration, now gateway use standart port(8000) & host(0.0.0.0)"
             )
@@ -237,4 +234,4 @@ class EasyGateway:
             uvicorn.run(self.app, host=host, port=port, log_level="warning")
         except KeyboardInterrupt:
             logger.info("👋 Shutting down...")
-            return 
+            return
