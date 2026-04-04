@@ -139,7 +139,7 @@ class EasyGateway:
         self.app.include_router(admin_router)
 
         @self.app.get("/")
-        async def welcome():
+        def welcome():
             return {"Status": "easy gatewy is running", "INFO": "admin & docs -> /docs"}
 
         @self.app.get("/health")
