@@ -6,7 +6,7 @@ PREFIX = "[ADMIN]"
 
 
 @router.post("/add_route")
-async def add_route(req: Request, path: str, target: str):
+def add_route(req: Request, path: str, target: str):
     gateway = req.app.state.gateway
     gateway.router.validate(path, target)
     gateway.router.add_route(path, target)
@@ -17,7 +17,7 @@ async def add_route(req: Request, path: str, target: str):
 
 
 @router.delete("/del_route")
-async def delete_route(req: Request, path: str):
+def delete_route(req: Request, path: str):
     gateway = req.app.state.gateway
     if gateway.router.delete_route(path):
         logger.info(f"{PREFIX} ✅ route {path} deleted!")
@@ -28,7 +28,7 @@ async def delete_route(req: Request, path: str):
 
 
 @router.get("/all_routes")
-async def show_all_routes(req: Request):
+def show_all_routes(req: Request):
     gateway = req.app.state.gateway
     exact = gateway.router.exact_routes
     prefix = gateway.router.prefix_routes
@@ -45,7 +45,7 @@ async def show_all_routes(req: Request):
 
 
 @router.put("/update/{path:path}")
-async def update_route(req: Request, path: str, new_target: str):
+def update_route(req: Request, path: str, new_target: str):
     gateway = req.app.state.gateway
     try:
         gateway.router.update_route(path, new_target)
@@ -59,7 +59,7 @@ async def update_route(req: Request, path: str, new_target: str):
 
 
 @router.get("/check/{path:path}")
-async def find_path(req: Request, path: str):
+def find_path(req: Request, path: str):
     gateway = req.app.state.gateway
     result = gateway.router.find_target(path)
 
