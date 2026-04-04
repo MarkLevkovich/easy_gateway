@@ -2,8 +2,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Dict
 
+from easy_gateway.gateway.admin.security import auth_user
 import httpx
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
@@ -46,7 +47,9 @@ class EasyGateway:
                 await self.redis.close()
                 logger.info("Redis connection closed")
 
-        self.app = FastAPI(title="Easy Gateway", lifespan=lifespan)
+        self.app = FastAPI(
+            title="Easy Gateway", lifespan=lifespan, dependencies=[Depends(auth_user)]
+        )
         self.app.state.gateway = self
         self.router = Router()
         self.middlewares: list[Middleware] = []

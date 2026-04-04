@@ -33,4 +33,8 @@ cors:
   allow_origins:
     - "myfront.com"
     - "testreact.space"
+
+admin:
+  username: "jack"
+  password: "2026"
     

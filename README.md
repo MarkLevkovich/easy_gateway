@@ -13,15 +13,12 @@
 - Rate limiting
 - Logging
 - Caching
+- Admin Panel with Basic Auth
 
 ### Requirements
 
-- Python ≥ 3.7
+- Python ≥ 3.10
 - No external dependencies
-
-### Version
-
-v0.1.7
 
 ---
 
@@ -29,6 +26,8 @@ v0.1.7
 
 ```bash
 pip install easy-gateway
+# or
+uv add easy-gateway
 ```
 
 ---
@@ -95,32 +94,20 @@ cors:
     - "testreact.space"
 ```
 
+### 6. ADMIN
+```yaml
+admin:
+  username: "jack" # by default: admin
+  password: "2026" # by default: admin
+```
+
 ---
 
 ## Running
 
 ```bash
 easy-gateway -c PATH-TO-YOUR-CONFIG
-# or
-easy-gateway --config
 # or simply
 easy-gateway  (if config is in root directory)
 ```
-
 ---
-
-## Project Structure
-
-```
-easy-gateway-docs/
-├── index.html    # HTML documentation page
-├── script.js     # JavaScript for navigation and code copying
-├── styles.css    # Styles (dark theme)
-└── README.md     # This file
-```
-
----
-
-## Links
-
-- GitHub: https://github.com/MarkLevkovich/easy_gateway
