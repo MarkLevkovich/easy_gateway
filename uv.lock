@@ -443,7 +443,7 @@ wheels = [
 
 [[package]]
 name = "easy-gateway"
-version = "0.1.11"
+version = "0.1.12"
 source = { editable = "." }
 dependencies = [
     { name = "annotated-doc" },
@@ -492,6 +492,13 @@ dependencies = [
 [package.optional-dependencies]
 test = [
     { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+]
+
+[package.dev-dependencies]
+dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -546,6 +553,13 @@ requires-dist = [
     { name = "websockets", specifier = "==15.0.1" },
 ]
 provides-extras = ["test"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+]
 
 [[package]]
 name = "exceptiongroup"
