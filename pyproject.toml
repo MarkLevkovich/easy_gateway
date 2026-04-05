@@ -74,3 +74,10 @@ easy-gateway = "easy_gateway.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/MarkLevkovich/easy_gateway"
+
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-asyncio", "pytest-cov", "httpx"]
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
