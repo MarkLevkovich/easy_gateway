@@ -43,7 +43,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  easy-gateway                     # Use default config.yaml
+  easy-gateway                     # Use default easy_conf.yaml
   easy-gateway -c custom.yaml      # Use custom config
   easy-gateway -c --no-banner      # Without banner (logo)
         """,
@@ -54,7 +54,7 @@ Examples:
         "--config",
         type=str,
         help="Path to your config-file",
-        default="config.yaml",
+        default="easy_conf.yaml",
     )
 
     parser.add_argument(

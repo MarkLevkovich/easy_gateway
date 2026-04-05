@@ -32,7 +32,7 @@ uv add easy-gateway
 
 ---
 
-## Configuration (config.yaml)
+## Configuration (easy_conf.yaml)
 
 ### 1. Server Settings
 

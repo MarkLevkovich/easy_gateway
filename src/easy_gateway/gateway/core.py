@@ -30,7 +30,7 @@ from easy_gateway.router.router import Router
 
 # main class
 class EasyGateway:
-    def __init__(self, config_path: str = "config.yaml", config: Dict[str, Any] = None):
+    def __init__(self, config_path: str = "easy_conf.yaml", config: Dict[str, Any] = None):
         if config is None:
             config = read_config(config_path)
 
@@ -219,7 +219,7 @@ class EasyGateway:
                     status_code=504, detail="[!] Backend timeout error [!]"
                 )
 
-    def run(self, config_path: str = "config.yaml", host="0.0.0.0", port=8000):
+    def run(self, config_path: str = "easy_conf.yaml", host="0.0.0.0", port=8000):
         import uvicorn
 
         try:
