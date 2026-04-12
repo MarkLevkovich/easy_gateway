@@ -1,7 +1,7 @@
 import time
-from loguru import logger
 
 from fastapi import Request, Response
+from loguru import logger
 
 from easy_gateway.middleware.base import Middleware
 

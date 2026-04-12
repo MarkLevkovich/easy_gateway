@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Dict, Optional, Tuple
 from urllib.parse import urljoin
 
 from fastapi import HTTPException
@@ -13,8 +12,8 @@ class RouteType(Enum):
 
 class Router:
     def __init__(self) -> None:
-        self.exact_routes: Dict[str, Tuple[str, RouteType]] = {}
-        self.prefix_routes: Dict[str, Tuple[str, RouteType]] = {}
+        self.exact_routes: dict[str, tuple[str, RouteType]] = {}
+        self.prefix_routes: dict[str, tuple[str, RouteType]] = {}
 
     def validate(self, path: str, target: str):
         if not (target.startswith("http://") or target.startswith("https://")):
@@ -43,7 +42,7 @@ class Router:
 
     def find_target(
         self, request_path: str
-    ) -> tuple[Optional[str], str, Optional[RouteType]]:
+    ) -> tuple[str | None, str, RouteType | None]:
         if request_path in self.exact_routes:
             target, route_type = self.exact_routes[request_path]
             return target, "", route_type

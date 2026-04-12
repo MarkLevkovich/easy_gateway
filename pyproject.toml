@@ -74,6 +74,18 @@ dev-dependencies = [
     "pytest-cov",
 ]
 
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
 [project.scripts]
 easy-gateway = "easy_gateway.cli:main"
 

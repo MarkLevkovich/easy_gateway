@@ -1,7 +1,4 @@
-import secrets
-
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi import APIRouter, HTTPException, Request
 from loguru import logger
 
 router = APIRouter(prefix="/admin", tags=["Gateway Admin Panel"])

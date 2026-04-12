@@ -1,6 +1,6 @@
 import time
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -11,7 +11,7 @@ from easy_gateway.middleware.base import Middleware
 class RateLimitMiddleware(Middleware):
     def __init__(self, requests_per_minute: int = 10) -> None:
         self.requests_per_minute: int = requests_per_minute
-        self.requests: Dict[str, List[float]] = defaultdict(list)
+        self.requests: dict[str, list[float]] = defaultdict(list)
 
     def _clean_old_requests(self, ip: str) -> None:
         now: float = time.time()

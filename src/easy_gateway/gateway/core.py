@@ -1,8 +1,7 @@
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
-from easy_gateway.gateway.admin.security import auth_user
 import httpx
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import HTTPException
@@ -18,6 +17,7 @@ from redis import asyncio as aioredis
 
 from easy_gateway.config import read_config
 from easy_gateway.gateway.admin.router import router as admin_router
+from easy_gateway.gateway.admin.security import auth_user
 from easy_gateway.gateway.handler import (
     process_request_middleware,
     process_response_middleware,
@@ -30,7 +30,9 @@ from easy_gateway.router.router import Router
 
 # main class
 class EasyGateway:
-    def __init__(self, config_path: str = "easy_conf.yaml", config: Dict[str, Any] = None):
+    def __init__(
+        self, config_path: str = "easy_conf.yaml", config: dict[str, Any] = None
+    ):
         if config is None:
             config = read_config(config_path)
 
@@ -152,7 +154,7 @@ class EasyGateway:
                 try:
                     await self.redis.ping()
                     checks["cache"] = "ok"
-                except:
+                except Exception:
                     checks["cache"] = "unavailable"
             else:
                 checks["cache"] = "ok"
