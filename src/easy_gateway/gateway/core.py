@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 
 import httpx
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
@@ -17,7 +17,6 @@ from redis import asyncio as aioredis
 
 from easy_gateway.config import read_config
 from easy_gateway.gateway.admin.router import router as admin_router
-from easy_gateway.gateway.admin.security import auth_user
 from easy_gateway.gateway.handler import (
     process_request_middleware,
     process_response_middleware,
@@ -49,9 +48,7 @@ class EasyGateway:
                 await self.redis.close()
                 logger.info("Redis connection closed")
 
-        self.app = FastAPI(
-            title="Easy Gateway", lifespan=lifespan, dependencies=[Depends(auth_user)]
-        )
+        self.app = FastAPI(title="Easy Gateway", lifespan=lifespan)
         self.app.state.gateway = self
         self.router = Router()
         self.middlewares: list[Middleware] = []
@@ -117,7 +114,7 @@ class EasyGateway:
             self.router.add_route(path, target)
             logger.info(f"- added: {path} -> {target}")
 
-        print("\n")
+        logger.info("")
 
     async def _setup_cache(self):
         redis_enabled = self.config.get("redis", {}).get("enabled", False)
@@ -145,7 +142,10 @@ class EasyGateway:
 
         @self.app.get("/")
         def welcome():
-            return {"Status": "easy gatewy is running", "INFO": "admin & docs -> /docs"}
+            return {
+                "Status": "easy gateway is running",
+                "INFO": "admin & docs -> /docs",
+            }
 
         @self.app.get("/health")
         async def check_health():
@@ -199,7 +199,7 @@ class EasyGateway:
             r_headers = dict(request.headers)
             r_headers.pop("Host", None)
 
-            if "accept" not in r_headers:
+            if "Accept" not in r_headers and "accept" not in r_headers:
                 r_headers["Accept"] = "application/json"
 
             try:
@@ -230,8 +230,8 @@ class EasyGateway:
                 host = server["host"]
                 port = server["port"]
         except Exception:
-            print(
-                "Wrong server configuration, now gateway use standart port(8000) & host(0.0.0.0)"
+            logger.warning(
+                "Wrong server configuration, now gateway use standard port(8000) & host(0.0.0.0)"
             )
 
         logger.info(f"✅ PORT: {port}, HOST: {host}")

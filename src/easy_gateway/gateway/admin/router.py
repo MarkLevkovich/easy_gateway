@@ -1,7 +1,11 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
 
-router = APIRouter(prefix="/admin", tags=["Gateway Admin Panel"])
+from easy_gateway.gateway.admin.security import auth_user
+
+router = APIRouter(
+    prefix="/admin", tags=["Gateway Admin Panel"], dependencies=[Depends(auth_user)]
+)
 PREFIX = "[ADMIN]"
 
 
@@ -51,8 +55,6 @@ def update_route(req: Request, path: str, new_target: str):
         gateway.router.update_route(path, new_target)
         logger.info(f"[ADMIN] ✅ Route updated: {path} -> {new_target}")
         return {"status": "success", "path": path, "target": new_target}
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"[ADMIN] ❌ Failed to update route {path}: {e}")
         raise HTTPException(500, f"Failed to update route: {str(e)}")
