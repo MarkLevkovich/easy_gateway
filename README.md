@@ -15,11 +15,6 @@
 - Caching
 - Admin Panel with Basic Auth
 
-### Requirements
-
-- Python ≥ 3.10
-- No external dependencies
-
 ---
 
 ## Installation
@@ -46,9 +41,9 @@ server:
 
 ```yaml
 redis:
-    enabled: true  # or false for InMemory Cache
+    enabled: true      # false -> in-memory cache (resets on restart)
     url: "redis://localhost:6379"
-    expire_time: 500  # cache TTL in seconds (default 180)
+    expire_time: 300   # cache TTL in seconds (default 180)
 ```
 
 To run Redis, you can use Docker:
@@ -60,14 +55,24 @@ docker run -d --name my-redis -p 6379:6379 redis
 
 ```yaml
 routes:
-  - path: "/bin/*"
+  - path: "/bin/*"                 # any path starting with /bin
     target: "https://httpbin.org/"
-    description: "Echo Server"
+    description: "HTTPBin playground"
+
+  - path: "/users"                 # exact match only
+    target: "https://api.example.com/users"
+    description: "Exact path -> full target URL"
+
+  - path: "/pets/*"
+    target: "https://petstore.swagger.io"
+    description: "Pets service"
+    cache: true                    # enable response caching for this route
 ```
 
 **Important:**
 - `path: "/user/*"` — for URLs with any prefix after user
 - `path: "/user/"` — for exact URL match
+- `cache: true` — (optional) enables response caching for a given route
 
 ### 4. Middleware
 
@@ -82,7 +87,7 @@ middlewares:
 
   - name: "RateLimitMiddleware"
     enabled: true
-    requests_per_minute: 5
+    requests_per_minute: 30
 ```
 
 ### 5. CORS
@@ -90,15 +95,15 @@ middlewares:
 ```yaml
 cors:
   allow_origins:
-    - "myfront.com"
-    - "testreact.space"
+    - "https://myfront.com"
+    - "https://testreact.space"
 ```
 
 ### 6. ADMIN
 ```yaml
 admin:
-  username: "jack" # by default: admin
-  password: "2026" # by default: admin
+  username: "admin" # by default: admin
+  password: "admin" # change this in production!
 ```
 
 ---
