@@ -41,7 +41,7 @@ server:
 
 ```yaml
 redis:
-    enabled: true      # false -> in-memory cache (resets on restart)
+    enabled: true      # false -> cache disabled
     url: "redis://localhost:6379"
     expire_time: 300   # cache TTL in seconds (default 180)
 ```
@@ -51,27 +51,43 @@ To run Redis, you can use Docker:
 docker run -d --name my-redis -p 6379:6379 redis
 ```
 
+Caching is **per-route** — add `cache: true` to any route to enable it (default `false`):
+
+```yaml
+routes:
+  - path: "/pets/*"
+    target: "https://petstore.swagger.io/"
+    cache: true        # enable response caching for this route
+```
+
+**How caching works:**
+- Only `GET` requests are cached — and only successful responses (`2xx`)
+- Cache key: `cache:<path>:<METHOD>:<md5(query_params)>` — requests with different params never collide
+- TTL is controlled by `redis.expire_time`
+- Any non-`GET` request (POST/PUT/DELETE/PATCH) to a cached route automatically invalidates its cache entries
+- Cache health is reported in `/health`
+
 ### 3. Routes
 
 ```yaml
 routes:
-  - path: "/bin/*"                 # any path starting with /bin
-    target: "https://httpbin.org/"
-    description: "HTTPBin playground"
+  - path: "/bin/*"                 # prefix route: /bin/anything, /bin/ip, ...
+    target: "https://httpbin.org/" # full URL, requested path is appended
 
-  - path: "/users"                 # exact match only
-    target: "https://api.example.com/users"
-    description: "Exact path -> full target URL"
+  - path: "/users"                 # exact route: only /users
+    target: "https://api.example.com"   # base URL, route path is appended automatically
 
   - path: "/pets/*"
-    target: "https://petstore.swagger.io"
+    target: "https://petstore.swagger.io/"
     description: "Pets service"
     cache: true                    # enable response caching for this route
 ```
 
 **Important:**
-- `path: "/user/*"` — for URLs with any prefix after user
-- `path: "/user/"` — for exact URL match
+- `path: "/user/*"` — prefix route: forwards any `/user/...` path to the target
+- `path: "/user/"` — exact route: matches only that URL
+- For **exact** routes the target must be a **base URL without the path** — the route path is appended automatically (`/users` + `https://api.example.com` → `https://api.example.com/users`)
+- For **prefix** routes the target must be a full URL (with `http://` or `https://`)
 - `cache: true` — (optional) enables response caching for a given route
 
 ### 4. Middleware
@@ -115,4 +131,3 @@ easy-gateway -c PATH-TO-YOUR-CONFIG
 # or simply
 easy-gateway  (if config is in root directory)
 ```
----
