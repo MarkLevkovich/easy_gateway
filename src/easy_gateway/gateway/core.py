@@ -10,8 +10,6 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
 from httpx import AsyncClient
 from httpx import Response as HTTPXResponse
 from loguru import logger
@@ -102,16 +100,10 @@ class EasyGateway:
             path = route["path"]
             target = route["target"]
 
-            if path.endswith("/*"):
-                if "://" not in target:
-                    logger.warning(
-                        f"🚫 For prefix path: {path} target need to be full URL (with http://)"
-                    )
-                else:
-                    if target.count("/") < 3:
-                        logger.warning(
-                            f"🚫 For exact route {path} specify full URL with path"
-                        )
+            if path.endswith("/*") and "://" not in target:
+                logger.warning(
+                    f"🚫 For prefix path: {path} target need to be full URL (with http://)"
+                )
 
             self.router.add_route(path, target)
             logger.info(f"- added: {path} -> {target}")
@@ -129,40 +121,25 @@ class EasyGateway:
                 await self.redis.ping()
                 logger.info(f"✅ Redis cache enabled: {redis_url}")
             except Exception as e:
-                logger.error(
-                    f"❌ Redis connection error: {e}. Falling back to in-memory cache."
-                )
+                logger.error(f"❌ Redis connection error: {e}. Caching disabled.")
                 self.redis = None
         else:
-            FastAPICache.init(InMemoryBackend(), prefix="easy-gateway-cache")
-            logger.info("✅ InMemory cache enabled")
+            logger.info("✅ Running without cache (redis.enabled: false)")
 
     def check_route_cache(self, path) -> bool:
         redis_enabled = self.config.get("redis", {}).get("enabled", False)
-        if redis_enabled:
-            routes = self.config.get("routes")
-            if not routes:
-                return False
-            for route in routes:
-                if route.get("path") == path:
-                    if route.get("cache", False):
-                        return True
+        if not redis_enabled:
+            return False
+        if not path.startswith("/"):
+            path = "/" + path
+        routes = self.config.get("routes", [])
+        for route in routes:
+            r_path = route.get("path")
+            if r_path == path:
+                return route.get("cache", False)
+            if r_path.endswith("*") and path.startswith(r_path[:-1]):
+                return route.get("cache", False)
         return False
-
-    def get_full_route_path(self, path):
-        routes = self.config.get("routes", {})
-        for route in routes:
-            if route.get("path") == path:
-                return path
-        longest = ""
-        for route in routes:
-            p = route.get("path")
-            if p.endswith("*"):
-                p = p.rstrip("*")
-            if path.startswith(p):
-                if len(p) > len(longest):
-                    longest = p
-        return longest
 
     @staticmethod
     def generate_cache_key(path, method, params):
@@ -171,6 +148,8 @@ class EasyGateway:
         return f"cache:{path}:{method}:{digest}"
 
     async def get_cache_data(self, key):
+        if not self.redis:
+            return None
         data = await self.redis.get(key)
         return json.loads(data) if data else None
 
@@ -185,7 +164,7 @@ class EasyGateway:
         cursor = 0
         while True:
             cursor, keys = await self.redis.scan(
-                cursor, match=f"cache:{path}", count=100
+                cursor, match=f"cache:{path}*", count=100
             )
             if keys:
                 await self.redis.delete(keys)
@@ -231,8 +210,10 @@ class EasyGateway:
             request, middleware_response = await process_request_middleware(
                 self.middlewares, request
             )
-            full_path = self.get_full_route_path(catch_path)
-            cache_enabled = self.check_route_cache(full_path)
+            if middleware_response is not None:
+                return middleware_response
+
+            cache_enabled = self.check_route_cache(catch_path)
             key = self.generate_cache_key(
                 catch_path, request.method, dict(request.query_params)
             )
@@ -245,10 +226,7 @@ class EasyGateway:
                             status_code=cached["status_code"],
                         )
                 else:
-                    await self.invalidate_cache(key)
-
-            if middleware_response is not None:
-                return middleware_response
+                    await self.invalidate_cache(catch_path)
 
             target, remaining, route_type = self.router.find_target(f"/{catch_path}")
 
