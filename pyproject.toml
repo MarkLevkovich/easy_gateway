@@ -24,18 +24,14 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "art==6.5",
     "fastapi==0.127.0",
-    "fastapi-cache2==0.2.2",
     "httpx==0.28.1",
     "loguru==0.7.3",
     "pendulum==3.1.0",
-    "pydantic==2.12.5",
     "PyYAML==6.0.3",
     "redis==7.1.0",
     "uvicorn[standard]==0.40.0",
     "uvloop==0.22.1",
-    "watchfiles==1.1.1",
 ]
 
 [tool.ruff]

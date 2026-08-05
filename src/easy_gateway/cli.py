@@ -2,10 +2,20 @@ import argparse
 import sys
 from pathlib import Path
 
-from art import tprint
 from loguru import logger
 
 from easy_gateway.gateway.core import EasyGateway
+
+ascii_logo = r"""
+______                   _____       _
+|  ____|                 / ____|     | |
+| |__   __ _ ___ _   _  | |  __  __ _| |_ _____      ____ _ _   _
+|  __| / _` / __| | | | | | |_ |/ _` | __/ _ \ \ /\ / / _` | | | |
+| |___| (_| \__ \ |_| | | |__| | (_| | ||  __/\ V  V / (_| | |_| |
+|______\__,_|___/\__, |  \_____|\__,_|\__\___| \_/\_/ \__,_|\__, |
+                 __/ |                                      __/ |
+                |___/                                      |___/
+"""
 
 
 def setup_logger():
@@ -13,7 +23,7 @@ def setup_logger():
 
     log_format = "<cyan>{time:HH:mm:ss}</cyan> | <level>{level: <8}</level> | <level>{message}</level>"
 
-    logger.add(sys.stderr, format=log_format, level="INFO")
+    logger.add(sys.stderr, format=log_format, level="DEBUG")
 
 
 def validate_config(config_path: Path) -> bool:
@@ -79,12 +89,7 @@ Examples:
         sys.exit(1)
 
     if not args.no_banner:
-        try:
-            tprint("Easy Gateway", font="dancingfont")
-        except ImportError:
-            logger.info("Easy Gateway")
-        except Exception as e:
-            logger.debug(f"Failed to print banner: {e}")
+        print(ascii_logo)
 
     separator = "─" * (len(str(config_path.absolute())) + 20)
     logger.info(separator)

@@ -1,3 +1,6 @@
+import base64
+import hashlib
+import json
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any
@@ -6,10 +9,7 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
-from fastapi_cache.backends.redis import RedisBackend
-from fastapi_cache.decorator import cache
+from fastapi.responses import Response
 from httpx import AsyncClient
 from httpx import Response as HTTPXResponse
 from loguru import logger
@@ -27,7 +27,6 @@ from easy_gateway.middleware.rate_limit_middleware import RateLimitMiddleware
 from easy_gateway.router.router import Router
 
 
-# main class
 class EasyGateway:
     def __init__(
         self, config_path: str = "easy_conf.yaml", config: dict[str, Any] = None
@@ -100,16 +99,10 @@ class EasyGateway:
             path = route["path"]
             target = route["target"]
 
-            if path.endswith("/*"):
-                if "://" not in target:
-                    logger.warning(
-                        f"🚫 For prefix path: {path} target need to be full URL (with http://)"
-                    )
-                else:
-                    if target.count("/") < 3:
-                        logger.warning(
-                            f"🚫 For exact route {path} specify full URL with path"
-                        )
+            if path.endswith("/*") and "://" not in target:
+                logger.warning(
+                    f"🚫 For prefix path: {path} target need to be full URL (with http://)"
+                )
 
             self.router.add_route(path, target)
             logger.info(f"- added: {path} -> {target}")
@@ -125,17 +118,57 @@ class EasyGateway:
             try:
                 self.redis = await aioredis.from_url(redis_url)
                 await self.redis.ping()
-                FastAPICache.init(RedisBackend(self.redis), prefix="easy-gateway-cache")
                 logger.info(f"✅ Redis cache enabled: {redis_url}")
             except Exception as e:
-                logger.error(
-                    f"❌ Redis connection error: {e}. Falling back to in-memory cache."
-                )
+                logger.error(f"❌ Redis connection error: {e}. Caching disabled.")
                 self.redis = None
-                FastAPICache.init(InMemoryBackend(), prefix="easy-gateway-cache")
         else:
-            FastAPICache.init(InMemoryBackend(), prefix="easy-gateway-cache")
-            logger.info("✅ InMemory cache enabled")
+            logger.info("✅ Running without cache (redis.enabled: false)")
+
+    def check_route_cache(self, path) -> bool:
+        redis_enabled = self.config.get("redis", {}).get("enabled", False)
+        if not redis_enabled:
+            return False
+        if not path.startswith("/"):
+            path = "/" + path
+        routes = self.config.get("routes", [])
+        for route in routes:
+            r_path = route.get("path")
+            if r_path == path:
+                return route.get("cache", False)
+            if r_path.endswith("*") and path.startswith(r_path[:-1]):
+                return route.get("cache", False)
+        return False
+
+    @staticmethod
+    def generate_cache_key(path, method, params):
+        params_key = json.dumps(sorted(params.items())) if params else ""
+        digest = hashlib.md5(params_key.encode()).hexdigest()
+        return f"cache:{path}:{method}:{digest}"
+
+    async def get_cache_data(self, key):
+        if not self.redis:
+            return None
+        data = await self.redis.get(key)
+        return json.loads(data) if data else None
+
+    async def set_cache_data(self, key, data):
+        if not self.redis:
+            return
+        await self.redis.set(key, json.dumps(data), ex=self.cache_exp)
+
+    async def invalidate_cache(self, path):
+        if not self.redis:
+            return
+        cursor = 0
+        while True:
+            cursor, keys = await self.redis.scan(
+                cursor, match=f"cache:{path}*", count=100
+            )
+            if keys:
+                await self.redis.delete(keys)
+            if cursor == 0:
+                break
 
     def _setup_handler(self):
         self.app.include_router(admin_router)
@@ -166,7 +199,6 @@ class EasyGateway:
                 "checks": checks,
             }
 
-        @cache(expire=self.cache_exp)
         @self.app.api_route(
             "/{catch_path:path}",
             methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
@@ -179,6 +211,21 @@ class EasyGateway:
             )
             if middleware_response is not None:
                 return middleware_response
+
+            cache_enabled = self.check_route_cache(catch_path)
+            key = self.generate_cache_key(
+                catch_path, request.method, dict(request.query_params)
+            )
+            if cache_enabled:
+                if request.method == "GET":
+                    cached = await self.get_cache_data(key)
+                    if cached:
+                        return Response(
+                            content=base64.b64decode(cached["body"]),
+                            status_code=cached["status_code"],
+                        )
+                else:
+                    await self.invalidate_cache(catch_path)
 
             target, remaining, route_type = self.router.find_target(f"/{catch_path}")
 
@@ -197,7 +244,9 @@ class EasyGateway:
 
             body = await request.body()
             r_headers = dict(request.headers)
-            r_headers.pop("Host", None)
+            r_headers = {
+                k: v for k, v in request.headers.items() if k.lower() != "host"
+            }
 
             if "Accept" not in r_headers and "accept" not in r_headers:
                 r_headers["Accept"] = "application/json"
@@ -206,6 +255,19 @@ class EasyGateway:
                 httpx_response: HTTPXResponse = await self.client.request(
                     method=request.method, url=url, headers=r_headers, content=body
                 )
+
+                if (
+                    cache_enabled
+                    and request.method == "GET"
+                    and 200 <= httpx_response.status_code < 300
+                ):
+                    await self.set_cache_data(
+                        key,
+                        {
+                            "status_code": httpx_response.status_code,
+                            "body": base64.b64encode(httpx_response.content).decode(),
+                        },
+                    )
 
                 processed_response = await process_response_middleware(
                     self.middlewares, request, httpx_response
