@@ -1,3 +1,6 @@
+import base64
+import hashlib
+import json
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any
@@ -6,10 +9,10 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.backends.redis import RedisBackend
-from fastapi_cache.decorator import cache
 from httpx import AsyncClient
 from httpx import Response as HTTPXResponse
 from loguru import logger
@@ -137,6 +140,49 @@ class EasyGateway:
             FastAPICache.init(InMemoryBackend(), prefix="easy-gateway-cache")
             logger.info("✅ InMemory cache enabled")
 
+    def check_route_cache(self, path) -> bool:
+        redis_enabled = self.config.get("redis", {}).get("enabled", False)
+        if redis_enabled:
+            routes = self.config.get("routes")
+            if not routes:
+                return False
+            for route in routes:
+                if route.get("path") == path:
+                    if route.get("cache", False):
+                        return True
+        return False
+
+    def get_full_route_path(self, path):
+        routes = self.config.get("routes", {})
+        for route in routes:
+            if route.get("path") == path:
+                return path
+        longest = ""
+        for route in routes:
+            p = route.get("path")
+            if p.endswith("*"):
+                p = p.rstrip("*")
+            if path.startswith(p):
+                if len(p) > len(longest):
+                    longest = p
+        return longest
+
+    @staticmethod
+    def generate_cache_key(path, method, params):
+        key = f"{method}:{path}"
+        if params:
+            key += json.dumps(sorted(params.items()))
+        return f"cache:{hashlib.md5(key.encode()).hexdigest()}"
+
+    async def get_cache_data(self, key):
+        data = await self.redis.get(key)
+        return json.loads(data) if data else None
+
+    async def set_cache_data(self, key, data):
+        if not self.redis:
+            return
+        await self.redis.set(key, json.dumps(data), ex=self.cache_exp)
+
     def _setup_handler(self):
         self.app.include_router(admin_router)
 
@@ -166,7 +212,7 @@ class EasyGateway:
                 "checks": checks,
             }
 
-        @cache(expire=self.cache_exp)
+        # @cache(expire=self.cache_exp)
         @self.app.api_route(
             "/{catch_path:path}",
             methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
@@ -177,6 +223,19 @@ class EasyGateway:
             request, middleware_response = await process_request_middleware(
                 self.middlewares, request
             )
+            full_path = self.get_full_route_path(catch_path)
+            cache_enabled = self.check_route_cache(full_path)
+            key = self.generate_cache_key(
+                catch_path, request.method, dict(request.query_params)
+            )
+            if cache_enabled:
+                cached = await self.get_cache_data(key)
+                if cached:
+                    return Response(
+                        content=base64.b64decode(cached["body"]),
+                        status_code=cached["status_code"],
+                    )
+
             if middleware_response is not None:
                 return middleware_response
 
@@ -206,6 +265,19 @@ class EasyGateway:
                 httpx_response: HTTPXResponse = await self.client.request(
                     method=request.method, url=url, headers=r_headers, content=body
                 )
+
+                if (
+                    cache_enabled
+                    and request.method == "GET"
+                    and 200 <= httpx_response.status_code < 300
+                ):
+                    await self.set_cache_data(
+                        key,
+                        {
+                            "status_code": httpx_response.status_code,
+                            "body": base64.b64encode(httpx_response.content).decode(),
+                        },
+                    )
 
                 processed_response = await process_response_middleware(
                     self.middlewares, request, httpx_response
