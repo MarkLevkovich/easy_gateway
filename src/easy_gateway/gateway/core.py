@@ -27,7 +27,6 @@ from easy_gateway.middleware.rate_limit_middleware import RateLimitMiddleware
 from easy_gateway.router.router import Router
 
 
-# main class
 class EasyGateway:
     def __init__(
         self, config_path: str = "easy_conf.yaml", config: dict[str, Any] = None
