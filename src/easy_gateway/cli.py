@@ -13,7 +13,7 @@ def setup_logger():
 
     log_format = "<cyan>{time:HH:mm:ss}</cyan> | <level>{level: <8}</level> | <level>{message}</level>"
 
-    logger.add(sys.stderr, format=log_format, level="INFO")
+    logger.add(sys.stderr, format=log_format, level="DEBUG")
 
 
 def validate_config(config_path: Path) -> bool:

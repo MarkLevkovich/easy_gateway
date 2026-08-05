@@ -12,7 +12,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
-from fastapi_cache.backends.redis import RedisBackend
 from httpx import AsyncClient
 from httpx import Response as HTTPXResponse
 from loguru import logger
@@ -128,14 +127,12 @@ class EasyGateway:
             try:
                 self.redis = await aioredis.from_url(redis_url)
                 await self.redis.ping()
-                FastAPICache.init(RedisBackend(self.redis), prefix="easy-gateway-cache")
                 logger.info(f"✅ Redis cache enabled: {redis_url}")
             except Exception as e:
                 logger.error(
                     f"❌ Redis connection error: {e}. Falling back to in-memory cache."
                 )
                 self.redis = None
-                FastAPICache.init(InMemoryBackend(), prefix="easy-gateway-cache")
         else:
             FastAPICache.init(InMemoryBackend(), prefix="easy-gateway-cache")
             logger.info("✅ InMemory cache enabled")
@@ -169,10 +166,9 @@ class EasyGateway:
 
     @staticmethod
     def generate_cache_key(path, method, params):
-        key = f"{method}:{path}"
-        if params:
-            key += json.dumps(sorted(params.items()))
-        return f"cache:{hashlib.md5(key.encode()).hexdigest()}"
+        params_key = json.dumps(sorted(params.items())) if params else ""
+        digest = hashlib.md5(params_key.encode()).hexdigest()
+        return f"cache:{path}:{method}:{digest}"
 
     async def get_cache_data(self, key):
         data = await self.redis.get(key)
@@ -182,6 +178,19 @@ class EasyGateway:
         if not self.redis:
             return
         await self.redis.set(key, json.dumps(data), ex=self.cache_exp)
+
+    async def invalidate_cache(self, path):
+        if not self.redis:
+            return
+        cursor = 0
+        while True:
+            cursor, keys = await self.redis.scan(
+                cursor, match=f"cache:{path}", count=100
+            )
+            if keys:
+                await self.redis.delete(keys)
+            if cursor == 0:
+                break
 
     def _setup_handler(self):
         self.app.include_router(admin_router)
@@ -212,7 +221,6 @@ class EasyGateway:
                 "checks": checks,
             }
 
-        # @cache(expire=self.cache_exp)
         @self.app.api_route(
             "/{catch_path:path}",
             methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
@@ -229,12 +237,15 @@ class EasyGateway:
                 catch_path, request.method, dict(request.query_params)
             )
             if cache_enabled:
-                cached = await self.get_cache_data(key)
-                if cached:
-                    return Response(
-                        content=base64.b64decode(cached["body"]),
-                        status_code=cached["status_code"],
-                    )
+                if request.method == "GET":
+                    cached = await self.get_cache_data(key)
+                    if cached:
+                        return Response(
+                            content=base64.b64decode(cached["body"]),
+                            status_code=cached["status_code"],
+                        )
+                else:
+                    await self.invalidate_cache(key)
 
             if middleware_response is not None:
                 return middleware_response
@@ -256,7 +267,9 @@ class EasyGateway:
 
             body = await request.body()
             r_headers = dict(request.headers)
-            r_headers.pop("Host", None)
+            r_headers = {
+                k: v for k, v in request.headers.items() if k.lower() != "host"
+            }
 
             if "Accept" not in r_headers and "accept" not in r_headers:
                 r_headers["Accept"] = "application/json"

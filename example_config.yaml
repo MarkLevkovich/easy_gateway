@@ -6,7 +6,7 @@ server:
   port: 8000         # port to listen on
 
 redis:
-  enabled: true      # false -> in-memory cache (resets on restart)
+  enabled: true
   url: "redis://localhost:6379"
   expire_time: 300   # cache TTL in seconds (default: 180)
 
@@ -14,14 +14,15 @@ routes:
   - path: "/bin/*"                 # any path starting with /bin
     target: "https://httpbin.org/"
     description: "HTTPBin playground"
-    cache: true # by default
+    cache: true # by default false
 
   - path: "/users"                 # exact match only
     target: "https://api.example.com/users"
     description: "Exact path -> full target URL"
-
+    cache: true
+    
   - path: "/pets/*"
-    target: "https://petstore.swagger.io"
+    target: "https://petstore.swagger.io/"
     description: "Pets service"
     cache: true                    # enable response caching for this route
 
