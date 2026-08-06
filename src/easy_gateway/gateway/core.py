@@ -223,6 +223,7 @@ class EasyGateway:
                         return Response(
                             content=base64.b64decode(cached["body"]),
                             status_code=cached["status_code"],
+                            headers=cached.get("headers", {}),
                         )
                 else:
                     await self.invalidate_cache(catch_path)
@@ -266,6 +267,7 @@ class EasyGateway:
                         {
                             "status_code": httpx_response.status_code,
                             "body": base64.b64encode(httpx_response.content).decode(),
+                            "headers": dict(httpx_response.headers),
                         },
                     )
 
