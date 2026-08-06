@@ -48,6 +48,19 @@ easy-gateway -c gateway.yaml
 
 Requests to `http://localhost:8000/api/anything` are now proxied to `https://httpbin.org/anything`.
 
+### Run with Docker
+
+Build the image and run the gateway:
+
+```bash
+docker build -t easy-gateway .
+docker run -p 8000:8000 \
+  -e CONFIG_PATH=example_config.yaml \
+  easy-gateway
+```
+
+The config path is controlled by the `CONFIG_PATH` env var (defaults to `/easy-gateway/easy_conf.yaml`). If the file is missing, the gateway reports it on startup.
+
 ### Documentation
 
 Full configuration reference, caching details, admin panel usage, and production examples are in the **[Wiki](https://github.com/MarkLevkovich/easy_gateway/wiki)**.
